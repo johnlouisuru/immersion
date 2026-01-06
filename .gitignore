@@ -1,0 +1,13 @@
+# Ignore sensitive files
+config.php
+.env
+.DS_Store
+Thumbs.db
+
+# Ignore vendor if using Composer
+/vendor/
+
+# Ignore logs
+*.log
+/logs/
+

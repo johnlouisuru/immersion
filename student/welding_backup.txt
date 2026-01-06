@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welding Simulation with Done Message</title>
+<style>
+  body { margin:0; overflow:hidden; background:#222; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="weldingCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('weldingCanvas');
+const ctx = canvas.getContext('2d');
+
+let mouseX = 0, mouseY = 0, isWelding = false;
+
+window.addEventListener('resize',()=>{ canvas.width=window.innerWidth; canvas.height=window.innerHeight; });
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+window.addEventListener('mousemove',(e)=>{ mouseX=e.clientX; mouseY=e.clientY; });
+window.addEventListener('mousedown',()=>{ isWelding=true; });
+window.addEventListener('mouseup',()=>{ isWelding=false; });
+
+const sparks = [];
+const weldMarks = []; 
+const drips = [];
+const smokeParticles = [];
+const heatHaze = [];
+const glowingBeads = [];
+
+const plateWidth = 180;
+const plateHeight = 100;
+const gap = 20;
+
+// Divide the seam vertically into segments
+const seamSegments = 50;
+const weldedSegments = new Array(seamSegments).fill(false);
+let doneMessage = false;
+
+function getPlatePositions(){
+  const centerX = canvas.width/2;
+  const centerY = canvas.height/2;
+  return {
+    left:{ x:centerX-plateWidth-gap/2, y:centerY-plateHeight/2 },
+    right:{ x:centerX+gap/2, y:centerY-plateHeight/2 },
+    seam:{ x:centerX-gap/2, y:centerY-plateHeight/2, width:gap, height:plateHeight }
+  };
+}
+
+function drawMetalObjects(){
+  const pos=getPlatePositions();
+  const gradient=ctx.createLinearGradient(pos.left.x,pos.left.y,pos.right.x+plateWidth,pos.right.y+plateHeight);
+  gradient.addColorStop(0,"#666");
+  gradient.addColorStop(0.5,"#aaa");
+  gradient.addColorStop(1,"#666");
+
+  ctx.fillStyle=gradient;
+  ctx.fillRect(pos.left.x,pos.left.y,plateWidth,plateHeight);
+  ctx.fillRect(pos.right.x,pos.right.y,plateWidth,plateHeight);
+
+  ctx.fillStyle="#111";
+  ctx.fillRect(pos.seam.x,pos.seam.y,pos.seam.width,pos.seam.height);
+}
+
+function drawWeldMarks(){
+  for(const mark of weldMarks){
+    ctx.save();
+    ctx.shadowBlur=10;
+    ctx.shadowColor='orange';
+    ctx.beginPath();
+    ctx.arc(mark.x,mark.y,mark.radius,0,Math.PI*2);
+    ctx.fillStyle='orange';
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawGlowingBeads(){
+  for(let i=glowingBeads.length-1;i>=0;i--){
+    const bead = glowingBeads[i];
+    ctx.save();
+    ctx.shadowBlur = bead.glow;
+    ctx.shadowColor = 'orange';
+    ctx.beginPath();
+    ctx.arc(bead.x,bead.y,bead.radius,0,Math.PI*2);
+    ctx.fillStyle = `rgba(255,165,0,${bead.opacity})`;
+    ctx.fill();
+    ctx.restore();
+
+    bead.opacity -= 0.02;
+    bead.glow -= 0.5;
+    if(bead.opacity<=0) glowingBeads.splice(i,1);
+  }
+}
+
+function drawDrips(){
+  for(let i=drips.length-1;i>=0;i--){
+    const drip=drips[i];
+    ctx.save();
+    ctx.shadowBlur=8;
+    ctx.shadowColor='orange';
+    ctx.beginPath();
+    ctx.arc(drip.x,drip.y,drip.radius,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,140,0,${drip.opacity})`;
+    ctx.fill();
+    ctx.restore();
+
+    drip.y += drip.speed;
+    drip.opacity -= 0.01;
+    if(drip.opacity<=0||drip.y>canvas.height) drips.splice(i,1);
+  }
+}
+
+function drawSmoke(){
+  for(let i=smokeParticles.length-1;i>=0;i--){
+    const s=smokeParticles[i];
+    ctx.save();
+    ctx.globalAlpha=s.opacity;
+    ctx.fillStyle='#aaa';
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.radius,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    s.y -= s.speedY;
+    s.x += (Math.random()*1-0.5);
+    s.radius += 0.02;
+    s.opacity -= 0.005;
+    if(s.opacity<=0) smokeParticles.splice(i,1);
+  }
+}
+
+function drawHeatHaze(){
+  for(let i=heatHaze.length-1;i>=0;i--){
+    const h=heatHaze[i];
+    const wave = Math.sin(h.offset + Date.now()*0.005)*2;
+    ctx.save();
+    ctx.globalAlpha=h.opacity;
+    ctx.strokeStyle='rgba(255,255,255,0.08)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(h.x+wave,h.y);
+    ctx.bezierCurveTo(h.x+wave+5,h.y-10,h.x+wave-5,h.y-20,h.x+wave,h.y-30);
+    ctx.stroke();
+    ctx.restore();
+
+    h.y -= h.speedY;
+    h.offset += 0.05;
+    h.opacity -= 0.003;
+    if(h.opacity<=0) heatHaze.splice(i,1);
+  }
+}
+
+// Mark vertical seam segments as welded
+function checkWeldCompletion(y){
+  const pos = getPlatePositions().seam;
+  const relY = y - pos.y;
+  const segment = Math.floor(relY / (pos.height / seamSegments));
+  if(segment >= 0 && segment < seamSegments){
+    weldedSegments[segment] = true;
+  }
+  if(!doneMessage && weldedSegments.every(v => v)) doneMessage = true;
+}
+
+function drawDoneMessage(){
+  ctx.save();
+  ctx.font = 'bold 48px Arial';
+  ctx.fillStyle = 'lime';
+  ctx.textAlign = 'center';
+  ctx.fillText('✅ Great, you welded the Gap!', canvas.width/2, canvas.height/2 - plateHeight);
+  ctx.restore();
+}
+
+function draw(){
+  ctx.fillStyle='rgba(34,34,34,0.3)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  drawMetalObjects();
+  drawWeldMarks();
+  drawGlowingBeads();
+  drawDrips();
+  drawSmoke();
+  drawHeatHaze();
+
+  if(isWelding){
+    ctx.save();
+    ctx.shadowBlur=20;
+    ctx.shadowColor='orange';
+    ctx.lineWidth=Math.random()*3+2;
+    ctx.strokeStyle='orange';
+    ctx.beginPath();
+    ctx.moveTo(mouseX,mouseY);
+    ctx.lineTo(mouseX+Math.random()*4-2,mouseY+Math.random()*4-2);
+    ctx.stroke();
+    ctx.restore();
+
+    const seam=getPlatePositions().seam;
+    if(mouseX>=seam.x && mouseX<=seam.x+seam.width &&
+       mouseY>=seam.y && mouseY<=seam.y+seam.height){
+
+      // Persistent weld mark
+      weldMarks.push({ x:mouseX, y:mouseY, radius:Math.random()*4+2 });
+
+      // Glowing bead
+      glowingBeads.push({
+        x:mouseX,
+        y:mouseY,
+        radius:Math.random()*3+2,
+        glow:10+Math.random()*10,
+        opacity:1
+      });
+
+      // Molten drips
+      if(Math.random()<0.1){
+        drips.push({
+          x:mouseX+(Math.random()*gap-gap/2),
+          y:mouseY,
+          radius:Math.random()*3+2,
+          speed:1+Math.random()*2,
+          opacity:1
+        });
+      }
+
+      // Smoke
+      if(Math.random()<0.15){
+        smokeParticles.push({
+          x:mouseX+(Math.random()*gap-gap/2),
+          y:mouseY-5,
+          radius:2+Math.random()*3,
+          speedY:0.5+Math.random()*1,
+          opacity:0.3+Math.random()*0.3
+        });
+      }
+
+      // Heat haze
+      if(Math.random()<0.2){
+        heatHaze.push({
+          x:mouseX+(Math.random()*gap-gap/2),
+          y:mouseY-5,
+          speedY:0.3+Math.random()*0.3,
+          opacity:0.2+Math.random()*0.2,
+          offset:Math.random()*10
+        });
+      }
+
+      // Check vertical segment welding
+      checkWeldCompletion(mouseY);
+    }
+  }
+
+  // Update sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const s=sparks[i];
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.radius,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,0,${s.life/20})`;
+    ctx.fill();
+    s.x += Math.random()*2-1;
+    s.y += Math.random()*2-1;
+    s.life -= 0.5;
+    if(s.life<=0) sparks.splice(i,1);
+  }
+
+  // Draw Done message if seam completed
+  if(doneMessage) drawDoneMessage();
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

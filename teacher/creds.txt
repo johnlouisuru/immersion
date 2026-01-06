@@ -1,0 +1,57 @@
+//for localhost db creds
+PAGE_HEADER = 'Immersion Portal'
+PAGE_SIDEBAR = 'Immersion Dashboard'
+PAGE_ICON = 'assets/img/v1.png'
+
+DB_HOST=localhost
+DB_NAME=immersion
+DB_USER=root
+DB_PASS=tJI(uRN8E;AdXm?8
+DB_CHARSET =utf8mb4
+
+TEST_VAR = 'ENV Successfully Read.'
+
+#ONLINE
+# SMTP_HOST = 'mail.mssc-official.com'
+# SMTP_USERNAME = 'e-dvms@mssc-official.com'
+# SMTP_SETFROM = 'e-dvms@mssc-official.com'
+# SMTP_SETFROM_HEADER = 'E_DVMS'
+# SMTP_PASSWORD = 'aLouIe@0@5'
+
+#LOCAL
+SMTP_HOST = 'smtp.gmail.com'
+SMTP_USERNAME = 'johnlouisuru@gmail.com'
+SMTP_SETFROM = 'johnlouisuru@gmail.com'
+SMTP_SETFROM_HEADER = 'E-DVMS'
+SMTP_PASSWORD = 'lgdp gxht jftm nqyt'
+SMTP_PORT = 465
+SMTP_SECURE = 'ssl'
+
+//for live creds
+PAGE_HEADER = 'Immersion Portal'
+PAGE_SIDEBAR = 'Immersion Dashboard'
+PAGE_ICON = 'assets/img/v1.png'
+
+DB_HOST=localhost
+DB_NAME=yicafkum_exam
+DB_USER=yicafkum_exam
+DB_PASS=aLouIe@0@5
+DB_CHARSET =utf8mb4
+
+TEST_VAR = 'ENV Successfully Read.'
+
+#ONLINE
+# SMTP_HOST = 'mail.mssc-official.com'
+# SMTP_USERNAME = 'e-dvms@mssc-official.com'
+# SMTP_SETFROM = 'e-dvms@mssc-official.com'
+# SMTP_SETFROM_HEADER = 'E_DVMS'
+# SMTP_PASSWORD = 'aLouIe@0@5'
+
+#LOCAL
+SMTP_HOST = 'smtp.gmail.com'
+SMTP_USERNAME = 'johnlouisuru@gmail.com'
+SMTP_SETFROM = 'johnlouisuru@gmail.com'
+SMTP_SETFROM_HEADER = 'E-DVMS'
+SMTP_PASSWORD = 'lgdp gxht jftm nqyt'
+SMTP_PORT = 465
+SMTP_SECURE = 'ssl'

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welding Simulation with Auto Save</title>
+<style>
+  body { margin:0; overflow:hidden; background:#222; font-family: Arial, sans-serif;}
+  canvas { display:block; }
+  #resetBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 10;
+  }
+  #resetBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<button id="resetBtn">Reset</button>
+<canvas id="weldingCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('weldingCanvas');
+const ctx = canvas.getContext('2d');
+const resetBtn = document.getElementById('resetBtn');
+
+// ---------------------------
+// CONFIGURE STUDENT INFO HERE
+const studentId = 123;       // Replace with actual student ID
+const weldingLevel = 1;      // Replace with actual welding level
+
+function sendWeldingResult() {
+    const data = `student_id=${studentId}&time_used=${weldingTime}&welding_level=${weldingLevel}`;
+    
+    fetch('welding_result.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data
+    })
+    .then(res => res.json())
+    .then(response => {
+        console.log('Result saved:', response);
+        alert('Your welding result has been saved!');
+    })
+    .catch(err => {
+        console.error('Failed to save result:', err);
+    });
+}
+// ---------------------------
+
+let mouseX=0, mouseY=0, isWelding=false;
+let weldingTime=0, weldingInterval=null, bestTime=null;
+let fadingReset=false;
+let plateAnimProgress=1;
+let plateOffset=30;
+
+const sparks=[], weldMarks=[], drips=[], smokeParticles=[], heatHaze=[], glowingBeads=[];
+const plateWidth=180, plateHeight=100, gap=20;
+const seamSegments=50;
+let weldedSegments=new Array(seamSegments).fill(false);
+let doneMessage=false;
+
+window.addEventListener('resize',()=>{ canvas.width=window.innerWidth; canvas.height=window.innerHeight; });
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+window.addEventListener('mousemove',(e)=>{ mouseX=e.clientX; mouseY=e.clientY; });
+
+// START / STOP WELDING
+window.addEventListener('mousedown',()=>{
+    if(!doneMessage){
+        isWelding=true;
+        if(!weldingInterval){
+            weldingInterval=setInterval(()=>{ weldingTime++; },1000);
+        }
+    }
+});
+window.addEventListener('mouseup',()=>{
+    isWelding=false;
+});
+
+// GET PLATE POSITIONS
+function getPlatePositions(){
+    const centerX=canvas.width/2, centerY=canvas.height/2;
+    const leftX = centerX-plateWidth-gap/2 - plateOffset*(1-plateAnimProgress);
+    const rightX = centerX+gap/2 + plateOffset*(1-plateAnimProgress);
+    return {
+        left:{x:leftX, y:centerY-plateHeight/2},
+        right:{x:rightX, y:centerY-plateHeight/2},
+        seam:{x:centerX-gap/2, y:centerY-plateHeight/2, width:gap, height:plateHeight}
+    };
+}
+
+// RESET FUNCTION
+function resetWelding(){
+    doneMessage=false;
+    weldingTime=0;
+    clearInterval(weldingInterval);
+    weldingInterval=null;
+    weldedSegments=new Array(seamSegments).fill(false);
+
+    plateAnimProgress=0;
+    fadingReset=true;
+
+    const animDuration=500;
+    const startTime=Date.now();
+    function animate(){
+        const t=(Date.now()-startTime)/animDuration;
+        plateAnimProgress=Math.min(t,1);
+
+        const fadeFactor=1-t;
+        for(const mark of weldMarks) mark.opacity=fadeFactor;
+        for(const bead of glowingBeads) bead.opacity=fadeFactor;
+        for(const drip of drips) drip.opacity=fadeFactor;
+        for(const smoke of smokeParticles) smoke.opacity=fadeFactor;
+        for(const haze of heatHaze) haze.opacity=fadeFactor;
+
+        if(plateAnimProgress<1) requestAnimationFrame(animate);
+        else { weldMarks.length=0; glowingBeads.length=0; drips.length=0; smokeParticles.length=0; heatHaze.length=0; fadingReset=false; }
+    }
+    animate();
+}
+resetBtn.addEventListener('click',resetWelding);
+
+// DRAW FUNCTIONS
+function drawMetalObjects(){
+    const pos=getPlatePositions();
+    const gradient=ctx.createLinearGradient(pos.left.x,pos.left.y,pos.right.x+plateWidth,pos.right.y+plateHeight);
+    gradient.addColorStop(0,"#666"); gradient.addColorStop(0.5,"#aaa"); gradient.addColorStop(1,"#666");
+    ctx.fillStyle=gradient;
+    ctx.fillRect(pos.left.x,pos.left.y,plateWidth,plateHeight);
+    ctx.fillRect(pos.right.x,pos.right.y,plateWidth,plateHeight);
+
+    if(doneMessage){
+        const pulse=0.3+0.2*Math.sin(Date.now()*0.005);
+        ctx.save(); ctx.shadowColor='lime'; ctx.shadowBlur=20;
+        ctx.fillStyle=`rgba(0,255,0,${pulse})`; ctx.fillRect(pos.seam.x,pos.seam.y,pos.seam.width,pos.seam.height); ctx.restore();
+    } else {
+        ctx.fillStyle="#111"; ctx.fillRect(pos.seam.x,pos.seam.y,pos.seam.width,pos.seam.height);
+    }
+}
+
+function drawWeldMarks(){ for(const mark of weldMarks){ ctx.save(); ctx.shadowBlur=10; ctx.shadowColor='orange'; ctx.beginPath(); ctx.arc(mark.x,mark.y,mark.radius,0,Math.PI*2); ctx.fillStyle=`rgba(255,165,0,${mark.opacity!==undefined?mark.opacity:1})`; ctx.fill(); ctx.restore(); } }
+function drawGlowingBeads(){ for(let i=glowingBeads.length-1;i>=0;i--){ const bead=glowingBeads[i]; ctx.save(); ctx.shadowBlur=bead.glow; ctx.shadowColor='orange'; ctx.beginPath(); ctx.arc(bead.x,bead.y,bead.radius,0,Math.PI*2); ctx.fillStyle=`rgba(255,165,0,${bead.opacity!==undefined?bead.opacity:1})`; ctx.fill(); ctx.restore(); bead.opacity-=0.02; bead.glow-=0.5; if(bead.opacity<=0) glowingBeads.splice(i,1); } }
+function drawDrips(){ for(let i=drips.length-1;i>=0;i--){ const drip=drips[i]; ctx.save(); ctx.shadowBlur=8; ctx.shadowColor='orange'; ctx.beginPath(); ctx.arc(drip.x,drip.y,drip.radius,0,Math.PI*2); ctx.fillStyle=`rgba(255,140,0,${drip.opacity!==undefined?drip.opacity:1})`; ctx.fill(); ctx.restore(); drip.y+=drip.speed; drip.opacity-=(fadingReset?0.02:0.01); if(drip.opacity<=0||drip.y>canvas.height) drips.splice(i,1); } }
+function drawSmoke(){ for(let i=smokeParticles.length-1;i>=0;i--){ const s=smokeParticles[i]; ctx.save(); ctx.globalAlpha=s.opacity!==undefined?s.opacity:1; ctx.fillStyle='#aaa'; ctx.beginPath(); ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); ctx.fill(); ctx.restore(); s.y-=s.speedY; s.x+=(Math.random()*1-0.5); s.radius+=0.02; s.opacity-=(fadingReset?0.02:0.005); if(s.opacity<=0) smokeParticles.splice(i,1); } }
+function drawHeatHaze(){ for(let i=heatHaze.length-1;i>=0;i--){ const h=heatHaze[i]; const wave=Math.sin(h.offset+Date.now()*0.005)*2; ctx.save(); ctx.globalAlpha=h.opacity!==undefined?h.opacity:1; ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(h.x+wave,h.y); ctx.bezierCurveTo(h.x+wave+5,h.y-10,h.x+wave-5,h.y-20,h.x+wave,h.y-30); ctx.stroke(); ctx.restore(); h.y-=h.speedY; h.offset+=0.05; h.opacity-=(fadingReset?0.02:0.003); if(h.opacity<=0) heatHaze.splice(i,1); } }
+
+function checkWeldCompletion(y){
+    const pos=getPlatePositions().seam;
+    const relY=y-pos.y;
+    const segment=Math.floor(relY/(pos.height/seamSegments));
+    if(segment>=0&&segment<seamSegments) weldedSegments[segment]=true;
+    if(!doneMessage && weldedSegments.every(v=>v)){
+        doneMessage=true;
+        if(weldingInterval){ clearInterval(weldingInterval); weldingInterval=null; }
+        if(bestTime===null || weldingTime<bestTime) bestTime=weldingTime;
+        
+        // SEND RESULT TO SERVER AUTOMATICALLY
+        sendWeldingResult();
+    }
+}
+
+function drawDoneMessage(){
+    const pulse=0.5+0.5*Math.sin(Date.now()*0.005);
+    ctx.save(); ctx.font='bold 48px Arial'; ctx.fillStyle=`rgba(0,255,0,${pulse})`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Done!',canvas.width/2,canvas.height/2-plateHeight); ctx.restore();
+}
+
+function drawTimer(){
+    ctx.save(); ctx.font='24px Arial'; ctx.fillStyle='white';
+    ctx.fillText(`Time: ${weldingTime}s`,20,40);
+    if(bestTime!==null) ctx.fillText(`Best Time: ${bestTime}s`,20,70);
+    ctx.restore();
+}
+
+// MAIN DRAW LOOP
+function draw(){
+    ctx.fillStyle='rgba(34,34,34,0.3)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawMetalObjects(); drawWeldMarks(); drawGlowingBeads(); drawDrips(); drawSmoke(); drawHeatHaze(); drawTimer();
+
+    if(isWelding){
+        ctx.save(); ctx.shadowBlur=20; ctx.shadowColor='orange'; ctx.lineWidth=Math.random()*3+2;
+        ctx.strokeStyle='orange'; ctx.beginPath(); ctx.moveTo(mouseX,mouseY); ctx.lineTo(mouseX+Math.random()*4-2,mouseY+Math.random()*4-2); ctx.stroke(); ctx.restore();
+        const seam=getPlatePositions().seam;
+        if(mouseX>=seam.x && mouseX<=seam.x+seam.width && mouseY>=seam.y && mouseY<=seam.y+seam.height){
+            weldMarks.push({x:mouseX,y:mouseY,radius:Math.random()*4+2});
+            glowingBeads.push({x:mouseX,y:mouseY,radius:Math.random()*3+2,glow:10+Math.random()*10,opacity:1});
+            if(Math.random()<0.1) drips.push({x:mouseX+(Math.random()*gap-gap/2),y:mouseY,radius:Math.random()*3+2,speed:1+Math.random()*2,opacity:1});
+            if(Math.random()<0.15) smokeParticles.push({x:mouseX+(Math.random()*gap-gap/2),y:mouseY-5,radius:2+Math.random()*3,speedY:0.5+Math.random()*1,opacity:0.3+Math.random()*0.3});
+            if(Math.random()<0.2) heatHaze.push({x:mouseX+(Math.random()*gap-gap/2),y:mouseY-5,speedY:0.3+Math.random()*0.3,opacity:0.2+Math.random()*0.2,offset:Math.random()*10});
+            checkWeldCompletion(mouseY);
+        }
+    }
+
+    for(let i=sparks.length-1;i>=0;i--){ const s=sparks[i]; ctx.beginPath(); ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); ctx.fillStyle=`rgba(255,255,0,${s.life/20})`; ctx.fill(); s.x+=Math.random()*2-1; s.y+=Math.random()*2-1; s.life-=0.5; if(s.life<=0) sparks.splice(i,1); }
+
+    if(doneMessage) drawDoneMessage();
+    requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
