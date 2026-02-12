@@ -53,53 +53,76 @@ if ($current_section !== 'all') {
     </div>
 
     <div class="card-body">
-
-
-        <table id="table" class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Full Name</th>
-                    <th>Section</th>
-                    <th>Email</th>
-                    <th>Teacher Assigned</th>
-                    <?php foreach ($requirements as $req): ?>
-                        <th><?= htmlspecialchars($req['req_name']) ?></th>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $loop = 1; ?>
-                <?php foreach ($students as $fetched): ?>
-                    <?php $section_teacher_holder = get_section_name($pdo, $fetched['section_id']); ?>
-                    <tr data-section="<?= isset($fetched['section_id']) ? (string)$fetched['section_id'] : 'none' ?>">
-
-                        <td><?= $loop++ ?></td>
-                        <td><?= htmlspecialchars($fetched['lastname']) . ' ' . htmlspecialchars($fetched['firstname'])  ?></td>
-                        <td><?= htmlspecialchars($section_teacher_holder['section_name']) ?></td>
-                        <td><?= htmlspecialchars($fetched['email']) ?></td>
-                        <?php
-                        if ($section_teacher_holder['teacher_id'] == 0) {
-                            echo "<td>No Assigned Teacher.</td>";
-                        } else {
-                            echo "<td>" . htmlspecialchars(get_teacher_name($pdo, $section_teacher_holder['teacher_id'])) . "</td>";
-                        }
-                        ?>
-                        <?php foreach ($requirements as $req):
-                            $is_checked = $status_map[$fetched['id']][$req['id']] ?? 0;
-                        ?>
-                            <td>
-                                <input class="statusCheck form-check-input"
-                                    type="checkbox"
-                                    data-student="<?= $fetched['id'] ?>"
-                                    data-id="<?= $req['id'] ?>"
-                                    <?= $is_checked ? 'checked' : '' ?> disabled>
-                            </td>
+        <?php if (!empty($students)): ?>
+            <?php $student = $students[0]; // Since only 1 student ?>
+            <?php $section_teacher_holder = get_section_name($pdo, $student['section_id']); ?>
+            
+            <!-- Student Information Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Full Name:</span>
+                            <span><?= htmlspecialchars($student['lastname'] . ', ' . $student['firstname']) ?></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Section:</span>
+                            <span><?= htmlspecialchars($section_teacher_holder['section_name']) ?></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Email:</span>
+                            <span><?= htmlspecialchars($student['email']) ?></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Teacher Assigned:</span>
+                            <span>
+                                <?php if ($section_teacher_holder['teacher_id'] == 0): ?>
+                                    No Assigned Teacher.
+                                <?php else: ?>
+                                    <?= htmlspecialchars(get_teacher_name($pdo, $section_teacher_holder['teacher_id'])) ?>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Requirements Card -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Student Requirements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <?php foreach ($requirements as $req): ?>
+                            <?php $is_checked = $status_map[$student['id']][$req['id']] ?? 0; ?>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span class="fw-bold"><?= htmlspecialchars($req['req_name']) ?>:</span>
+                                <span>
+                                    <?php if ($is_checked): ?>
+                                        <span class="badge bg-success">✓</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">○ Pending</span>
+                                    <?php endif; ?>
+                                    <input class="statusCheck form-check-input ms-2"
+                                        type="checkbox"
+                                        data-student="<?= $student['id'] ?>"
+                                        data-id="<?= $req['id'] ?>"
+                                        <?= $is_checked ? 'checked' : '' ?> 
+                                        disabled
+                                        style="opacity: 0.8;">
+                                </span>
+                            </div>
                         <?php endforeach; ?>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info">No student found.</div>
+        <?php endif; ?>
     </div>
 </div>
 
