@@ -35,6 +35,15 @@
                                         <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>
                                      Browse
                             </a>
+                            <div class="sb-sidenav-menu-heading">DAILY JOURNAL</div>
+                            <a class="nav-link" href="add_journal">
+                                        <div class="sb-nav-link-icon"><i class="fas fa-pencil"></i></div>
+                                     Add Journal
+                            </a>
+                            <a class="nav-link" href="view_journals">
+                                        <div class="sb-nav-link-icon"><i class="fas fa-eye"></i></div>
+                                     View Journal
+                            </a>
                             
                             <!-- <a class="nav-link" href="#">
                                 <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
