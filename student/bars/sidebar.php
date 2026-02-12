@@ -26,6 +26,15 @@
                                         <div class="sb-nav-link-icon"><i class="fas fa-file-alt"></i></div>
                                      My Requirements
                             </a>
+                            <a class="nav-link" href="upload_requirement">
+                                        <div class="sb-nav-link-icon"><i class="fas fa-upload"></i></div>
+                                     Upload Requirement
+                            </a>
+                            <div class="sb-sidenav-menu-heading">LEARNING MATERIALS</div>
+                            <a class="nav-link" href="learning_materials_view">
+                                        <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>
+                                     Browse
+                            </a>
                             
                             <!-- <a class="nav-link" href="#">
                                 <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>

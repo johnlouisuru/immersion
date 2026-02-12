@@ -118,6 +118,14 @@
                                 <div class="sb-nav-link-icon"><i class="fas fa-chart-area"></i></div>
                                 Manage Attendance
                             </a>
+                            <a class="nav-link" href="manage_files">
+                                <div class="sb-nav-link-icon"><i class="fas fa-folder"></i></div>
+                                Manage Files
+                            </a>
+                            <a class="nav-link" href="learning_materials">
+                                <div class="sb-nav-link-icon"><i class="fas fa-folder"></i></div>
+                                Learning Materials
+                            </a>
                             <!-- <a class="nav-link" href="#">
                                 <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
                                 Tables
