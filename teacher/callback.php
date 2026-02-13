@@ -1,5 +1,7 @@
 <?php
 require_once "db-config/security.php";
+// At the top of your file after require_once
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 // Check if authorization code is present
@@ -68,17 +70,33 @@ if (!isset($user_info['id']) || !isset($user_info['email'])) {
 // }
 
 
-// Check if user exists in database
+// Check if user exists in database - by google_id OR email
 $conn = $pdo;
-$stmt = $conn->prepare("SELECT * FROM teachers WHERE google_id = :google_id");
-$stmt->execute(['google_id' => $user_info['id']]);
+$stmt = $conn->prepare("SELECT * FROM teachers WHERE google_id = :google_id OR email = :email");
+$stmt->execute([
+    'google_id' => $user_info['id'],
+    'email' => $user_info['email']
+]);
 $user = $stmt->fetch();
 
 if ($user) {
-    // User exists - log them in
+    // User exists - but we need to handle different scenarios
+    if ($user['google_id'] !== $user_info['id']) {
+        // Case 1: Email exists but with different Google ID
+        // This means the email is already registered with another Google account
+        // Update the google_id to this new one
+        $update_stmt = $conn->prepare("UPDATE teachers SET google_id = :new_google_id WHERE id = :user_id");
+        $update_stmt->execute([
+            'new_google_id' => $user_info['id'],
+            'user_id' => $user['id']
+        ]);
+        error_log("Updated google_id for user: " . $user['email']);
+    }
+    
+    // Now log them in
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['teacher_id'] = $user['id'];
-    $_SESSION['google_id'] = $user['google_id'];
+    $_SESSION['google_id'] = $user_info['id']; // Use the new Google ID
     $_SESSION['email'] = $user['email'];
     $_SESSION['profile_complete'] = true;
     $_SESSION['firstname'] = $user['firstname'];
@@ -87,13 +105,12 @@ if ($user) {
     
     header('Location: dashboard');
 } else {
-    // New user - store Google info in session and redirect to complete profile
+    // New user - proceed as before
     $_SESSION['google_id'] = $user_info['id'];
     $_SESSION['email'] = $user_info['email'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;
-
-    $_SESSION['user_id'] = $user_info['id'];
+    $_SESSION['user_id'] = $user_info['id']; // Consider if this is correct
     $_SESSION['teacher_id'] = $user_info['id'];
     
     header('Location: complete-profile');
