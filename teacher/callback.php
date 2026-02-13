@@ -65,7 +65,7 @@ if(!$allowed_email){
 }
 
 // Check if user exists in database
-$conn = $pdo;
+
 $stmt = $conn->prepare("SELECT * FROM teachers WHERE google_id = :google_id");
 $stmt->execute(['google_id' => $user_info['id']]);
 $user = $stmt->fetch();
@@ -85,6 +85,7 @@ if ($user) {
 } else {
     // New user - store Google info in session and redirect to complete profile
     $_SESSION['google_id'] = $user_info['id'];
+    $_SESSION['user_id'] = $user_info['id']; 
     $_SESSION['email'] = $user_info['email'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;
