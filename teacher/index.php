@@ -12,6 +12,8 @@ if (isLoggedIn() && !isProfileComplete()) {
     header('Location: complete-profile');
     exit;
 }
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 // Generate Google OAuth URL
 $google_auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([

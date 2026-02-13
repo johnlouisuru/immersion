@@ -1,13 +1,14 @@
 <?php
 require_once "db-config/security.php";
-
-// Check if authorization code is present
-if (!isset($_GET['code'])) {
-    header('Location: index');
-    exit;
-}
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+// Check if authorization code is present
+if (!isset($_GET['code'])) {
+    // header('Location: index');
+    die("No Code Returned");
+    exit;
+}
+
 
 
 
