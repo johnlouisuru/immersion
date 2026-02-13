@@ -55,17 +55,17 @@ if (!isset($user_info['id']) || !isset($user_info['email'])) {
 }
 
 // Check if teacher email is allowed
-$conn = $pdo;
-$stmt = $conn->prepare("SELECT * FROM allowed_teachers WHERE allowed_email = :allowed_email AND is_allowed IS NOT NULL");
-$stmt->execute(['allowed_email' => $user_info['email']]);
-$allowed_email = $stmt->fetch();
+// $conn = $pdo;
+// $stmt = $conn->prepare("SELECT * FROM allowed_teachers WHERE allowed_email = :allowed_email AND is_allowed IS NOT NULL");
+// $stmt->execute(['allowed_email' => $user_info['email']]);
+// $allowed_email = $stmt->fetch();
 
-if(!$allowed_email){
-    echo "Your E-mail is not verified by the Administrator. Contact Mrs. Salcedo for permission. You will be redirected shortly.";
-    // header("refresh:3;url=index");
-    die('Until here.');
-    return;
-}
+// if(!$allowed_email){
+//     echo "Your E-mail is not verified by the Administrator. Contact Mrs. Salcedo for permission. You will be redirected shortly.";
+//     // header("refresh:3;url=index");
+//     die('Until here.');
+//     return;
+// }
 
 
 // Check if user exists in database
