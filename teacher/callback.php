@@ -95,7 +95,8 @@ if ($user) {
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['teacher_id'] = $user['id'];
     $_SESSION['google_id'] = $user_info['id']; // Use the current Google ID
-    $_SESSION['email'] = $user['email'];
+    // $_SESSION['email'] = $user['email'];
+    $_SESSION['email'] = "judysimpliciano29@gmail.com";
     $_SESSION['profile_complete'] = true;
     $_SESSION['firstname'] = $user['firstname'];
     $_SESSION['lastname'] = $user['lastname'];
@@ -105,7 +106,8 @@ if ($user) {
 } else {
     // Brand new user
     $_SESSION['google_id'] = $user_info['id'];
-    $_SESSION['email'] = $user_info['email'];
+    // $_SESSION['email'] = $user_info['email'];
+    $_SESSION['email'] = "judysimpliciano29@gmail.com";
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;
     
