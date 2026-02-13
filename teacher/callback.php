@@ -52,20 +52,8 @@ if (!isset($user_info['id']) || !isset($user_info['email'])) {
     die('Error: Unable to retrieve user information');
 }
 
-// Check if teacher email is allowed
-$conn = $pdo;
-$stmt = $conn->prepare("SELECT * FROM allowed_teachers WHERE allowed_email = :allowed_email AND is_allowed IS NOT NULL");
-$stmt->execute(['allowed_email' => $user_info['email']]);
-$allowed_email = $stmt->fetch();
-
-if(!$allowed_email){
-    echo "Your E-mail is not verified by the Administrator. Contact Mrs. Salcedo for permission. You will be redirected shortly.";
-    header("refresh:3;url=index");
-    return;
-}
-
 // Check if user exists in database
-
+$conn = $pdo;
 $stmt = $conn->prepare("SELECT * FROM teachers WHERE google_id = :google_id");
 $stmt->execute(['google_id' => $user_info['id']]);
 $user = $stmt->fetch();
@@ -74,6 +62,7 @@ if ($user) {
     // User exists - log them in
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['teacher_id'] = $user['id'];
+    $_SESSION['section_id'] = $user['section_id'];
     $_SESSION['google_id'] = $user['google_id'];
     $_SESSION['email'] = $user['email'];
     $_SESSION['profile_complete'] = true;
@@ -85,13 +74,13 @@ if ($user) {
 } else {
     // New user - store Google info in session and redirect to complete profile
     $_SESSION['google_id'] = $user_info['id'];
-    $_SESSION['user_id'] = $user_info['id']; 
     $_SESSION['email'] = $user_info['email'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;
 
     $_SESSION['user_id'] = $user_info['id'];
     $_SESSION['teacher_id'] = $user_info['id'];
+    $_SESSION['section_id'] = 0;
     
     header('Location: complete-profile');
 }
