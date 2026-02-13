@@ -70,6 +70,7 @@ if (!isset($user_info['id']) || !isset($user_info['email'])) {
 // }
 
 
+// Replace the user existence check section with this:
 // Check if user exists in database - by google_id OR email
 $conn = $pdo;
 $stmt = $conn->prepare("SELECT * FROM teachers WHERE google_id = :google_id OR email = :email");
@@ -80,23 +81,20 @@ $stmt->execute([
 $user = $stmt->fetch();
 
 if ($user) {
-    // User exists - but we need to handle different scenarios
+    // User exists - check if it's the same google_id
     if ($user['google_id'] !== $user_info['id']) {
-        // Case 1: Email exists but with different Google ID
-        // This means the email is already registered with another Google account
-        // Update the google_id to this new one
+        // Email exists but with different Google ID - update it
         $update_stmt = $conn->prepare("UPDATE teachers SET google_id = :new_google_id WHERE id = :user_id");
         $update_stmt->execute([
             'new_google_id' => $user_info['id'],
             'user_id' => $user['id']
         ]);
-        error_log("Updated google_id for user: " . $user['email']);
+        error_log("Updated google_id for user: " . $user['email'] . " from " . $user['google_id'] . " to " . $user_info['id']);
     }
     
-    // Now log them in
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['teacher_id'] = $user['id'];
-    $_SESSION['google_id'] = $user_info['id']; // Use the new Google ID
+    $_SESSION['google_id'] = $user_info['id']; // Use the current Google ID
     $_SESSION['email'] = $user['email'];
     $_SESSION['profile_complete'] = true;
     $_SESSION['firstname'] = $user['firstname'];
@@ -105,13 +103,11 @@ if ($user) {
     
     header('Location: dashboard');
 } else {
-    // New user - proceed as before
+    // Brand new user
     $_SESSION['google_id'] = $user_info['id'];
     $_SESSION['email'] = $user_info['email'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;
-    $_SESSION['user_id'] = $user_info['id']; // Consider if this is correct
-    $_SESSION['teacher_id'] = $user_info['id'];
     
     header('Location: complete-profile');
 }

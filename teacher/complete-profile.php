@@ -1,6 +1,13 @@
 <?php
 require_once 'db-config/security.php';
+// Enable error logging
+error_log("=== Complete Profile Access ===");
+error_log("Session google_id: " . ($_SESSION['google_id'] ?? 'not set'));
+error_log("Session email: " . ($_SESSION['email'] ?? 'not set'));
+error_log("Session profile_complete: " . ($_SESSION['profile_complete'] ?? 'not set'));
 
+// Set PDO error mode
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // Redirect if not authenticated
 if (!isset($_SESSION['google_id']) || !isset($_SESSION['email'])) {
     header('Location: index');
@@ -28,37 +35,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($mi) > 10) {
         $error = 'Middle initial is too long.';
     } else {
-        try {
-            $conn = $pdo;
-            
-            
-                // Insert new student
-                $stmt = $conn->prepare("
-                    INSERT INTO teachers (google_id, email, lastname, firstname, mi, profile_picture)
-                    VALUES (:google_id, :email, :lastname, :firstname, :mi, :profile_picture)
-                ");
-                
-                $stmt->execute([
-                    'google_id' => $_SESSION['google_id'],
-                    'email' => $_SESSION['email'],
-                    'lastname' => $lastname,
-                    'firstname' => $firstname,
-                    'mi' => $mi ?: null,
-                    'profile_picture' => $_SESSION['profile_picture'] ?? null
-                ]);
-                
-                // Update session
-                $_SESSION['user_id'] = $conn->lastInsertId();
-                $_SESSION['profile_complete'] = true;
-                $_SESSION['firstname'] = $firstname;
-                $_SESSION['lastname'] = $lastname;
-                
-                header('Location: dashboard');
-                exit;
-            
-        } catch (PDOException $e) {
-            $error = 'An error occurred. Please try again.';
-        }
+        // Replace this block in complete-profile.php:
+try {
+    $conn = $pdo;
+    
+    // First, check if user already exists
+    $check_stmt = $conn->prepare("SELECT id FROM teachers WHERE google_id = :google_id OR email = :email");
+    $check_stmt->execute([
+        'google_id' => $_SESSION['google_id'],
+        'email' => $_SESSION['email']
+    ]);
+    $existing_user = $check_stmt->fetch();
+    
+    if ($existing_user) {
+        // Update existing user
+        $stmt = $conn->prepare("
+            UPDATE teachers 
+            SET lastname = :lastname, 
+                firstname = :firstname, 
+                mi = :mi, 
+                profile_picture = :profile_picture,
+                google_id = :google_id,
+                email = :email
+            WHERE id = :id
+        ");
+        
+        $stmt->execute([
+            'id' => $existing_user['id'],
+            'google_id' => $_SESSION['google_id'],
+            'email' => $_SESSION['email'],
+            'lastname' => $lastname,
+            'firstname' => $firstname,
+            'mi' => $mi ?: null,
+            'profile_picture' => $_SESSION['profile_picture'] ?? null
+        ]);
+        
+        $user_id = $existing_user['id'];
+    } else {
+        // Insert new user
+        $stmt = $conn->prepare("
+            INSERT INTO teachers (google_id, email, lastname, firstname, mi, profile_picture)
+            VALUES (:google_id, :email, :lastname, :firstname, :mi, :profile_picture)
+        ");
+        
+        $stmt->execute([
+            'google_id' => $_SESSION['google_id'],
+            'email' => $_SESSION['email'],
+            'lastname' => $lastname,
+            'firstname' => $firstname,
+            'mi' => $mi ?: null,
+            'profile_picture' => $_SESSION['profile_picture'] ?? null
+        ]);
+        
+        $user_id = $conn->lastInsertId();
+    }
+    
+    // Update session
+    $_SESSION['user_id'] = $user_id;
+    $_SESSION['teacher_id'] = $user_id;
+    $_SESSION['profile_complete'] = true;
+    $_SESSION['firstname'] = $firstname;
+    $_SESSION['lastname'] = $lastname;
+    
+    header('Location: dashboard');
+    exit;
+    
+} catch (PDOException $e) {
+    error_log("Complete profile error: " . $e->getMessage());
+    $error = 'An error occurred. Please try again.';
+}
     }
 }
 ?>
