@@ -4,6 +4,11 @@ if (!isLoggedIn()) {
     header('Location: index');
     exit;
 }
+if($_SESSION['email'] !== 'judysimpliciano29@gmail.com'){
+    $_SESSION['allowed_message'] = "Uh Oh! You are not Authorized to add email";
+    header('Location: register_teacher.php');
+    exit;
+}
 
 // Handle different actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
