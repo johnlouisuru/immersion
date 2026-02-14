@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("UPDATE sections SET teacher_id = ? WHERE id = ?");
         if ($stmt->execute([$teacher_id, $new_section_id])) {
             $_SESSION['section_message'] = 'Section successfully updated.';
-            header("Location: register_teacher");
+            header("Location: register_teacher.php");
             exit;
         } else {
             echo "Error updating section assignment.";
