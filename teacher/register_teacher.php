@@ -25,7 +25,7 @@
                             <!-- Teachers Table Section -->
                             <div class="col-lg-12">
                                 <div class="card shadow-lg border-0 rounded-lg mt-5">
-                                    <div class="card-header"><h5 class="text-center font-weight-light my-4">All Students</h5></div>
+                                    <div class="card-header"><h5 class="text-center font-weight-light my-4">All Teachers</h5></div>
                                     <div class="card-body">
                                         <?php if(@$_SESSION['section_message'] != ''): ?>
                                             <div class="alert alert-info" role="alert">
