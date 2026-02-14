@@ -66,7 +66,7 @@
                                     echo "<td>No Assigned Teacher.</td>";
                             }else {
                                 ?>
-                                <td><?= htmlspecialchars(get_teacher_name($pdo, $section_teacher_holder['teacher_id'])) ?></td>
+                                <td><?= htmlspecialchars(get_teacher_name($pdo, $section_teacher_holder['teacher_id']) ?? '-') ?></td>
                             <?php 
                         }
                         ?>

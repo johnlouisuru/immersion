@@ -2,10 +2,10 @@
 require 'db-config/security.php';
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode([]);
-    exit;
-}
+// if (!isset($_SESSION['user_id'])) {
+//     echo json_encode([]);
+//     exit;
+// }
 
 $student_id = $_SESSION['user_id'];
 $teacher_id = intval($_GET['teacher_id'] ?? 0);

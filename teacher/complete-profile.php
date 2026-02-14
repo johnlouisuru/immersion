@@ -9,16 +9,16 @@ error_log("Session profile_complete: " . ($_SESSION['profile_complete'] ?? 'not 
 // Set PDO error mode
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // Redirect if not authenticated
-if (!isset($_SESSION['google_id']) || !isset($_SESSION['email'])) {
+if (!isGoogleAuthenticated()) {
     header('Location: index');
     exit;
 }
 
-// Redirect if profile already complete
 if (isProfileComplete()) {
     header('Location: dashboard');
     exit;
 }
+
 
 $error = '';
 $success = '';

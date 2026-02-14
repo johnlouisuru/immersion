@@ -7,13 +7,13 @@ if (!isLoggedIn()) {
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['teacher_id'])) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Unauthorized'
-    ]);
-    exit;
-}
+// if (!isset($_SESSION['teacher_id'])) {
+//     echo json_encode([
+//         'status' => 'error',
+//         'message' => 'Unauthorized'
+//     ]);
+//     exit;
+// }
 
 $teacher_id = $_SESSION['user_id'];
 $message = trim($_POST['message'] ?? '');

@@ -14,21 +14,16 @@
     }
 
         // Redirect if not logged in
-        if (!isLoggedIn()) {
-            header('Location: index');
-            exit;
-        }
+        // if (!isLoggedIn()) {
+        //     header('Location: index');
+        //     exit;
+        // }
 
         // Get student information
-        $conn = $pdo;
-        $stmt = $conn->prepare("SELECT * FROM students WHERE id = :id");
-        $stmt->execute(['id' => $_SESSION['user_id']]);
-        $student = $stmt->fetch();
-
-        if (!$student) {
-            session_destroy();
-            header('Location: index');
-            exit;
+        if (!isGoogleAuthenticated() || !isLoggedIn()) {
+            // header('Location: complete-profile');
+            // exit;
+            die('Unauthorized!');
         }
 ?>
 <!DOCTYPE html>

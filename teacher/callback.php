@@ -1,6 +1,7 @@
 <?php
 require_once "db-config/security.php";
 
+
 // Check if authorization code is present
 if (!isset($_GET['code'])) {
     header('Location: index');
@@ -72,18 +73,21 @@ $user = $stmt->fetch();
 if ($user) {
     // User exists - log them in
     $_SESSION['user_id'] = $user['id'];
+    $_SESSION['teacher_id'] = $user['id'];
     $_SESSION['google_id'] = $user['google_id'];
     $_SESSION['email'] = $user['email'];
     $_SESSION['profile_complete'] = true;
     $_SESSION['firstname'] = $user['firstname'];
     $_SESSION['lastname'] = $user['lastname'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
-    
-    header('Location: classroom');
+    // error_log('SESSION AFTER CALLBACK: ' . print_r($_SESSION, true));
+    // die();
+    header('Location: dashboard');
 } else {
     // New user - store Google info in session and redirect to complete profile
-    $_SESSION['google_id'] = $user_info['id'];
+    $_SESSION['google_id'] = $user_info['google_id'];
     $_SESSION['user_id'] = $user_info['id']; 
+    $_SESSION['teacher_id'] = $user_info['id']; 
     $_SESSION['email'] = $user_info['email'];
     $_SESSION['profile_picture'] = $user_info['picture'] ?? null;
     $_SESSION['profile_complete'] = false;

@@ -13,9 +13,10 @@ if(empty($_SESSION['lastname']) || empty($_SESSION['firstname'])){
 }
 
 $teacher_id = $_SESSION['user_id'];
+$section_id = '';
 
 // Get teacher's section
-$query = "SELECT section_id FROM teachers WHERE id = ? AND is_active = 1";
+$query = "SELECT section_id FROM teachers WHERE id = ?";
 $stmt = $pdo->prepare($query);
 $stmt->execute([$teacher_id]);
 $teacher = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,8 +25,9 @@ if (!$teacher || !$teacher['section_id']) {
     $error_message = "You are not assigned to any section. Please contact the administrator.";
 } else {
     $section_id = $teacher['section_id'];
+    
 }
-
+// echo "<h1>xxxx $section_id</h1>";
 // Handle Approve/Reject actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $response = ['success' => false, 'message' => ''];

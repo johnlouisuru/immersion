@@ -2,26 +2,38 @@
     require("db-config/security.php");
 
     // Redirect if not logged in
-if (!isLoggedIn()) {
-    header('Location: index');
-    exit;
+// if (!isLoggedIn()) {
+//     header('Location: index');
+//     exit;
+// }
+
+// if(empty($_SESSION['lastname']) || empty($_SESSION['firstname'])){
+//     header('Location: complete-profile');
+//     exit;
+// // }
+// if (!isLoggedIn() && !isProfileComplete()) {
+//     header('Location: index');
+//     exit;
+// }
+
+if (!isGoogleAuthenticated() || !isLoggedIn()) {
+    // header('Location: complete-profile');
+    // exit;
+    die('Unauthorized!');
 }
 
-if(empty($_SESSION['lastname']) || empty($_SESSION['firstname'])){
-    header('Location: complete-profile');
-    exit;
-}
 
 // Get student information
 $conn = $pdo;
-$stmt = $conn->prepare("SELECT * FROM students WHERE id = :id");
+$stmt = $conn->prepare("SELECT * FROM teachers WHERE id = :id");
 $stmt->execute(['id' => $_SESSION['user_id']]);
 $student = $stmt->fetch();
 
 if (!$student) {
-    session_destroy();
-    header('Location: index');
-    exit;
+    //session_destroy();
+    //header('Location: index');
+    //exit;
+    echo "<h1>Not Student</h1>";
 }
 ?>
 <!DOCTYPE html>
@@ -93,6 +105,7 @@ if (!$student) {
                         
                         <!-- Table Template -->
     <?php
+    
         require __DIR__ . '/tables/requirement_percentage.php'; //Table with Search
     ?> 
                         <!-- Table Template -->

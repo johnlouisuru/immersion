@@ -20,10 +20,20 @@
 /**
  * Sanitize a string for HTML output
  */
- 
+ /**
+  * Google Client ID : 3881994274-hgtelja2b8a7qho4t0t4akot9fd7am96.apps.googleusercontent.com
+  * Google Client Secret: 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
+  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
+
+function navActive($currentPath, $page)
+{
+    return ($page == $currentPath) ? 'active bg-gradient-dark text-white' : 'text-dark';
+}
 function clean_text($string) {
     return htmlspecialchars(trim($string), ENT_QUOTES, 'UTF-8');
 }
@@ -115,14 +125,18 @@ try {
  * Run secure query
  */
 // Check if user is logged in
-function isLoggedIn() {
-    return isset($_SESSION['user_id']) && isset($_SESSION['google_id']);
+function isGoogleAuthenticated() {
+    return isset($_SESSION['google_id'], $_SESSION['email']);
 }
 
-// Check if user profile is complete
-function isProfileComplete() {
-    return isset($_SESSION['profile_complete']) && $_SESSION['profile_complete'] === true;
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
 }
+
+function isProfileComplete() {
+    return !empty($_SESSION['profile_complete']);
+}
+
 
 function authenticate_email($db, $sql, $email){
     //$sql = "SELECT * FROM admins WHERE email=:email";
@@ -202,10 +216,11 @@ function get_teacher_name($db, $teacher_id){
      $stmt->execute([":teacher_id" => $teacher_id]);
      $row = $stmt->fetch(PDO::FETCH_ASSOC);
      if($row){
-        return $row['lastname'] . ', '. $row['firstname'];
+
+        return $row['firstname'] . ', '.$row['lastname'] ;
      }
      else {
-        return '-';
+        return 'No Assigned';
      }
      
 }
@@ -225,7 +240,7 @@ function get_student_name($db, $student_id){
 }
 
 function total_count_of_requirement($db){
-    $sql = "SELECT COUNT(*) AS total_requirements FROM requirements WHERE is_active = 1";
+    $sql = "SELECT COUNT(*) AS total_requirements FROM requirements";
     $stmt = $db->prepare($sql);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -233,35 +248,23 @@ function total_count_of_requirement($db){
     return $row ? (int)$row['total_requirements'] : 0;
 }
 
-function get_requirement_percentage(PDO $db, int $student_id): float
-{
-    $sql = "
-        SELECT COUNT(DISTINCT rs.req_id) AS checked_count
-        FROM requirements_status rs
-        INNER JOIN requirements r
-            ON rs.req_id = r.id
-        WHERE rs.student_id = :student_id
-          AND rs.is_checked = 1
-          AND r.is_active = 1
-    ";
-
+function get_requirement_percentage($db, $student_id) {
+    $sql = "SELECT COUNT(*) AS checked_count 
+            FROM requirements_status 
+            WHERE student_id = :student_id AND is_checked = 1";
     $stmt = $db->prepare($sql);
-    $stmt->execute([':student_id' => $student_id]);
+    $stmt->execute([":student_id" => $student_id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$row) {
+    if($row){
+        $total_count_requirement = total_count_of_requirement($db);
+        return  $percentage_to_return = ($row['checked_count'] / $total_count_requirement) * 100;
+    }
+    else {
         return 0;
     }
-
-    $total_count_requirement = total_count_of_requirement($db);
-
-    if ($total_count_requirement == 0) {
-        return 0;
-    }
-
-    return ($row['checked_count'] / $total_count_requirement) * 100;
+    
+    //return $row ? (int)$row['checked_count'] : 0;
 }
-
 
 function get_type_of_vessel($db, $sql){
      $stmt = $db->prepare($sql);

@@ -82,7 +82,7 @@ $students_without_messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php if ($students): ?>
                     <?php foreach ($students as $row): ?>
                         <li class="p-2 border-bottom bg-body-tertiary">
-                            <a href="chatbox.php?teacher_id=<?= (int)$row['teacher_id'] ?>" class="d-flex justify-content-between text-decoration-none text-dark">
+                            <a href="chatbox?teacher_id=<?= (int)$row['teacher_id'] ?>" class="d-flex justify-content-between text-decoration-none text-dark">
 
                                 <div class="d-flex flex-row">
                                     <img src="assets/img/user.png"
@@ -116,7 +116,7 @@ $students_without_messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <hr />
                     <?php foreach ($students_without_messages as $row): ?>
                         <li class="p-2 border-bottom bg-body-tertiary">
-                            <a href="chatbox.php?teacher_id=<?= (int)$row['id'] ?>" class="d-flex justify-content-between text-decoration-none text-dark">
+                            <a href="chatbox?teacher_id=<?= (int)$row['id'] ?>" class="d-flex justify-content-between text-decoration-none text-dark">
 
                                 <div class="d-flex flex-row">
                                     <img src="assets/img/user.png"

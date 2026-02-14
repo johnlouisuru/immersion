@@ -2,17 +2,16 @@
 require_once "db-config/security.php";
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-// If already logged in and profile complete, redirect to dashboard
 if (isLoggedIn() && isProfileComplete()) {
     header('Location: dashboard');
     exit;
 }
 
-// If logged in but profile incomplete, redirect to complete profile
-if (isLoggedIn() && !isProfileComplete()) {
+if (isGoogleAuthenticated() && !isProfileComplete()) {
     header('Location: complete-profile');
     exit;
 }
+
 
 
 // Generate Google OAuth URL

@@ -2,10 +2,11 @@
     require("db-config/security.php");
 
     // Redirect if not logged in
-if (!isLoggedIn()) {
-    header('Location: index');
-    exit;
-}
+if (!isGoogleAuthenticated() || !isLoggedIn()) {
+            // header('Location: complete-profile');
+            // exit;
+            die('Unauthorized!');
+        }
 
   if(isset($_GET['student_id']) && isset($_SESSION['teacher_id'])){
     $studentId = $_GET['student_id'];
