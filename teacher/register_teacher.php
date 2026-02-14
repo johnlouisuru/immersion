@@ -102,7 +102,7 @@
                                 <div class="card shadow-lg border-0 rounded-lg mt-5">
                                     <div class="card-header">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h5 class="font-weight-light my-4">Allowed Email(s) to register</h5>
+                                            <h5 class="font-weight-light my-4">Allowed Email(s) to register [Only Admin can Manage]</h5>
                                             <!-- Add New Button - triggers modal -->
                                             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAllowedTeacherModal">
                                                 <i class="fas fa-plus"></i> Add New Email
