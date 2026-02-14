@@ -129,7 +129,7 @@
           </div>
           <div class="card-footer text-muted d-flex justify-content-start align-items-center p-3">
             <div class="input-group mb-0">
-                <input type="hidden" value="2" id="teacher_id"> <!-- Change this to Teacher ID dynamically -->
+                <input type="hidden" value="<?= $_GET['teacher_id'] ?>" id="teacher_id"> <!-- Change this to Teacher ID dynamically -->
                 <textarea type="text" class="form-control" id="message" placeholder="Type message"
                   aria-label="Recipient's username" aria-describedby="button-addon2"></textarea>
                 <button data-mdb-button-init data-mdb-ripple-init class="btn btn-warning" type="button" id="sendMessageBtn" style="padding-top: .55rem;">

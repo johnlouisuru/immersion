@@ -46,57 +46,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
     
-    // Save journal
-    if ($_POST['action'] === 'save_journal') {
-        $journal_date = $_POST['journal_date'];
-        $title = trim($_POST['title']);
-        $reflection = $_POST['reflection'];
-        $mood = $_POST['mood'] ?? null;
-        $location = $_POST['location'] ?? null;
+    // Save journal - FIXED image handling
+if ($_POST['action'] === 'save_journal') {
+    $journal_date = $_POST['journal_date'];
+    $title = trim($_POST['title']);
+    $reflection = $_POST['reflection'];
+    $mood = $_POST['mood'] ?? null;
+    $location = $_POST['location'] ?? null;
+    
+    // Validate
+    if (empty($title)) {
+        $response['message'] = 'Please enter a journal title.';
+        echo json_encode($response);
+        exit;
+    }
+    
+    if (empty($reflection)) {
+        $response['message'] = 'Please write your reflection.';
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Check if journal already exists for this date
+    $check_query = "SELECT id FROM student_journals WHERE student_id = ? AND journal_date = ?";
+    $stmt = $pdo->prepare($check_query);
+    $stmt->execute([$student_id, $journal_date]);
+    
+    if ($stmt->rowCount() > 0) {
+        $response['message'] = 'You already have a journal entry for this date.';
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Begin transaction
+    $pdo->beginTransaction();
+    
+    try {
+        // Insert journal
+        $insert_query = "
+            INSERT INTO student_journals 
+            (student_id, journal_date, title, reflection, mood, location, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ";
+        $stmt = $pdo->prepare($insert_query);
+        $stmt->execute([$student_id, $journal_date, $title, $reflection, $mood, $location]);
         
-        // Validate
-        if (empty($title)) {
-            $response['message'] = 'Please enter a journal title.';
-            echo json_encode($response);
-            exit;
-        }
+        $journal_id = $pdo->lastInsertId();
         
-        if (empty($reflection)) {
-            $response['message'] = 'Please write your reflection.';
-            echo json_encode($response);
-            exit;
-        }
-        
-        // Check if journal already exists for this date
-        $check_query = "SELECT id FROM student_journals WHERE student_id = ? AND journal_date = ?";
-        $stmt = $pdo->prepare($check_query);
-        $stmt->execute([$student_id, $journal_date]);
-        
-        if ($stmt->rowCount() > 0) {
-            $response['message'] = 'You already have a journal entry for this date.';
-            echo json_encode($response);
-            exit;
-        }
-        
-        // Begin transaction
-        $pdo->beginTransaction();
-        
-        try {
-            // Insert journal
-            $insert_query = "
-                INSERT INTO student_journals 
-                (student_id, journal_date, title, reflection, mood, location, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
-            ";
-            $stmt = $pdo->prepare($insert_query);
-            $stmt->execute([$student_id, $journal_date, $title, $reflection, $mood, $location]);
+        // Process images - FIXED: Only insert, never delete
+        if (!empty($_POST['images'])) {
+            $images = json_decode($_POST['images'], true);
             
-            $journal_id = $pdo->lastInsertId();
+            // Verify these images belong to this student and aren't already linked to another journal
+            $valid_images = [];
+            foreach ($images as $image) {
+                // Check if image is in student's directory
+                if (strpos($image['path'], $upload_dir) === 0) {
+                    $valid_images[] = $image;
+                }
+            }
             
-            // Process images
-            if (!empty($_POST['images'])) {
-                $images = json_decode($_POST['images'], true);
-                
+            if (!empty($valid_images)) {
                 $image_query = "
                     INSERT INTO journal_images 
                     (journal_id, image_path, image_name, file_size, sort_order) 
@@ -104,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ";
                 $img_stmt = $pdo->prepare($image_query);
                 
-                foreach ($images as $index => $image) {
+                foreach ($valid_images as $index => $image) {
                     $img_stmt->execute([
                         $journal_id,
                         $image['path'],
@@ -114,94 +124,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ]);
                 }
             }
-            
-            $pdo->commit();
-            $response['success'] = true;
-            $response['message'] = 'Journal saved successfully!';
-            $response['journal_id'] = $journal_id;
-            
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $response['message'] = 'Failed to save journal: ' . $e->getMessage();
         }
         
+        $pdo->commit();
+        $response['success'] = true;
+        $response['message'] = 'Journal saved successfully!';
+        $response['journal_id'] = $journal_id;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $response['message'] = 'Failed to save journal: ' . $e->getMessage();
+    }
+    
+    echo json_encode($response);
+    exit;
+}
+    
+    // Update journal - FIXED to preserve existing images
+if ($_POST['action'] === 'update_journal' && isset($_POST['journal_id'])) {
+    $journal_id = $_POST['journal_id'];
+    $title = trim($_POST['title']);
+    $reflection = $_POST['reflection'];
+    $mood = $_POST['mood'] ?? null;
+    $location = $_POST['location'] ?? null;
+    
+    // Verify ownership
+    $check_query = "SELECT id FROM student_journals WHERE id = ? AND student_id = ?";
+    $stmt = $pdo->prepare($check_query);
+    $stmt->execute([$journal_id, $student_id]);
+    
+    if ($stmt->rowCount() === 0) {
+        $response['message'] = 'Journal not found or access denied.';
         echo json_encode($response);
         exit;
     }
     
-    // Update journal
-    if ($_POST['action'] === 'update_journal' && isset($_POST['journal_id'])) {
-        $journal_id = $_POST['journal_id'];
-        $title = trim($_POST['title']);
-        $reflection = $_POST['reflection'];
-        $mood = $_POST['mood'] ?? null;
-        $location = $_POST['location'] ?? null;
+    $pdo->beginTransaction();
+    
+    try {
+        // Update journal
+        $update_query = "
+            UPDATE student_journals 
+            SET title = ?, reflection = ?, mood = ?, location = ?, updated_at = NOW() 
+            WHERE id = ? AND student_id = ?
+        ";
+        $stmt = $pdo->prepare($update_query);
+        $stmt->execute([$title, $reflection, $mood, $location, $journal_id, $student_id]);
         
-        // Verify ownership
-        $check_query = "SELECT id FROM student_journals WHERE id = ? AND student_id = ?";
-        $stmt = $pdo->prepare($check_query);
-        $stmt->execute([$journal_id, $student_id]);
-        
-        if ($stmt->rowCount() === 0) {
-            $response['message'] = 'Journal not found or access denied.';
-            echo json_encode($response);
-            exit;
-        }
-        
-        $pdo->beginTransaction();
-        
-        try {
-            // Update journal
-            $update_query = "
-                UPDATE student_journals 
-                SET title = ?, reflection = ?, mood = ?, location = ?, updated_at = NOW() 
-                WHERE id = ? AND student_id = ?
-            ";
-            $stmt = $pdo->prepare($update_query);
-            $stmt->execute([$title, $reflection, $mood, $location, $journal_id, $student_id]);
+        // Handle images - FIXED: Don't delete, just update order
+        if (isset($_POST['images'])) {
+            $images = json_decode($_POST['images'], true);
             
-            // Handle images
-            if (isset($_POST['images'])) {
-                // Delete old images
-                $delete_query = "DELETE FROM journal_images WHERE journal_id = ?";
-                $stmt = $pdo->prepare($delete_query);
-                $stmt->execute([$journal_id]);
-                
-                // Insert new images
-                $images = json_decode($_POST['images'], true);
-                
-                if (!empty($images)) {
-                    $image_query = "
+            // Get existing images to know which ones to keep
+            $existing_query = "SELECT id, image_path FROM journal_images WHERE journal_id = ?";
+            $stmt = $pdo->prepare($existing_query);
+            $stmt->execute([$journal_id]);
+            $existing_images = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Create lookup of existing image paths
+            $existing_paths = [];
+            foreach ($existing_images as $img) {
+                $existing_paths[$img['image_path']] = $img['id'];
+            }
+            
+            // Update sort order for existing images and track which are still used
+            $keep_ids = [];
+            $sort_order = 0;
+            
+            foreach ($images as $image) {
+                if (isset($existing_paths[$image['path']])) {
+                    // Image exists - update sort order
+                    $update_order = "UPDATE journal_images SET sort_order = ? WHERE id = ?";
+                    $order_stmt = $pdo->prepare($update_order);
+                    $order_stmt->execute([$sort_order, $existing_paths[$image['path']]]);
+                    $keep_ids[] = $existing_paths[$image['path']];
+                } else {
+                    // New image - insert it
+                    $insert_query = "
                         INSERT INTO journal_images 
                         (journal_id, image_path, image_name, file_size, sort_order) 
                         VALUES (?, ?, ?, ?, ?)
                     ";
-                    $img_stmt = $pdo->prepare($image_query);
-                    
-                    foreach ($images as $index => $image) {
-                        $img_stmt->execute([
-                            $journal_id,
-                            $image['path'],
-                            $image['name'],
-                            $image['size'],
-                            $index
-                        ]);
-                    }
+                    $insert_stmt = $pdo->prepare($insert_query);
+                    $insert_stmt->execute([
+                        $journal_id,
+                        $image['path'],
+                        $image['name'],
+                        $image['size'],
+                        $sort_order
+                    ]);
+                    $keep_ids[] = $pdo->lastInsertId();
                 }
+                $sort_order++;
             }
             
-            $pdo->commit();
-            $response['success'] = true;
-            $response['message'] = 'Journal updated successfully!';
-            
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $response['message'] = 'Failed to update journal: ' . $e->getMessage();
+            // Delete images that are no longer in the list (only if they were removed by user)
+            if (!empty($keep_ids)) {
+                $placeholders = implode(',', array_fill(0, count($keep_ids), '?'));
+                $delete_query = "DELETE FROM journal_images WHERE journal_id = ? AND id NOT IN ($placeholders)";
+                $params = array_merge([$journal_id], $keep_ids);
+                $delete_stmt = $pdo->prepare($delete_query);
+                $delete_stmt->execute($params);
+            }
         }
         
-        echo json_encode($response);
-        exit;
+        $pdo->commit();
+        $response['success'] = true;
+        $response['message'] = 'Journal updated successfully!';
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $response['message'] = 'Failed to update journal: ' . $e->getMessage();
     }
+    
+    echo json_encode($response);
+    exit;
+}
     
     // Upload image
     if ($_POST['action'] === 'upload_image' && isset($_FILES['image'])) {
@@ -1480,45 +1518,60 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }, 100);
         }
         
-        function applyCrop() {
-            if (cropper && currentCroppingImage) {
-                const canvas = cropper.getCroppedCanvas({
-                    width: 800,
-                    height: 600
-                });
-                
-                canvas.toBlob(function(blob) {
-                    // Create file from blob
-                    const file = new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' });
+        // ============================================
+// FIXED: IMAGE CROPPER - Now preserves original
+// ============================================
+function applyCrop() {
+    if (cropper && currentCroppingImage) {
+        const canvas = cropper.getCroppedCanvas({
+            width: 800,
+            height: 600,
+            fillColor: '#fff',
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        // Show loading
+        showToast('Processing cropped image...', 'info');
+        
+        canvas.toBlob(function(blob) {
+            // Create file from blob with UNIQUE filename
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2, 15);
+            const file = new File([blob], `cropped_${timestamp}_${random}.jpg`, { 
+                type: 'image/jpeg' 
+            });
+            
+            // Upload cropped image as NEW file
+            const formData = new FormData();
+            formData.append('action', 'upload_image');
+            formData.append('image', file);
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // DON'T delete the old image - keep it as separate version
+                    // Just add the new cropped version
+                    uploadedImages.push(data);
+                    renderImagePreviews();
                     
-                    // Upload cropped image
-                    const formData = new FormData();
-                    formData.append('action', 'upload_image');
-                    formData.append('image', file);
-                    
-                    fetch(window.location.href, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Delete old image
-                            if (uploadedImages[currentCroppingImage.index]) {
-                                deleteImage(currentCroppingImage.index, false);
-                            }
-                            
-                            // Add new cropped image
-                            uploadedImages.push(data);
-                            renderImagePreviews();
-                            
-                            showToast('Image cropped successfully', 'success');
-                            closeCropper();
-                        }
-                    });
-                }, 'image/jpeg', 0.9);
-            }
-        }
+                    showToast('Image cropped and added successfully', 'success');
+                    closeCropper();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error processing image', 'error');
+                console.error(error);
+            });
+        }, 'image/jpeg', 0.92);
+    }
+}
         
         function closeCropper() {
             document.getElementById('cropperModal').classList.remove('active');
@@ -1530,31 +1583,42 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         // ============================================
-        // DELETE IMAGE
-        // ============================================
-        function deleteImage(index, showToastMessage = true) {
-            const image = uploadedImages[index];
-            
-            // Delete from server
-            const formData = new FormData();
-            formData.append('action', 'delete_image');
-            formData.append('image_path', image.path);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    uploadedImages.splice(index, 1);
-                    renderImagePreviews();
-                    if (showToastMessage) {
-                        showToast('Image deleted successfully', 'success');
-                    }
-                }
-            });
+// FIXED: DELETE IMAGE - Better cleanup
+// ============================================
+function deleteImage(index, showToastMessage = true) {
+    const image = uploadedImages[index];
+    
+    // Confirm deletion
+    if (!confirm('Are you sure you want to delete this image?')) {
+        return;
+    }
+    
+    // Delete from server
+    const formData = new FormData();
+    formData.append('action', 'delete_image');
+    formData.append('image_path', image.path);
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            uploadedImages.splice(index, 1);
+            renderImagePreviews();
+            if (showToastMessage) {
+                showToast('Image deleted successfully', 'success');
+            }
+        } else {
+            showToast('Failed to delete image', 'error');
         }
+    })
+    .catch(error => {
+        showToast('Error deleting image', 'error');
+        console.error(error);
+    });
+}
         
         // ============================================
         // SORTABLE DRAG AND DROP

@@ -131,7 +131,7 @@ foreach ($journals as &$journal) {
        /* Cover Photo / Hero Section - COMPLETELY FIXED FOR MOBILE */
 .profile-cover {
     background: linear-gradient(135deg, #1e3c72, #2a5298);
-    height: 180px; /* Reduced height */
+    height: 200px; /* Reduced height */
     border-radius: 20px 20px 20px 20px;
     position: relative;
     margin-bottom: 70px;
@@ -150,7 +150,7 @@ foreach ($journals as &$journal) {
 
 .profile-header {
     position: absolute;
-    bottom: -50px;
+    bottom: 0px;
     left: 15px;
     right: 15px;
     display: flex;
@@ -486,22 +486,23 @@ foreach ($journals as &$journal) {
 
 @media (min-width: 768px) {
     .journal-header {
-        padding: 25px;
+        padding: 5px;
     }
 }
 
 /* Profile stats - FIXED for EC issue */
 .profile-stats {
     display: flex;
-    gap: 12px;
-    margin-top: 12px;
+    gap: 0px;
+    margin-top: 80px;
     justify-content: center;
     flex-wrap: wrap;
 }
 
 @media (min-width: 768px) {
     .profile-stats {
-        gap: 30px;
+        gap: 0px;
+        margin-top: 80px;
         justify-content: flex-start;
     }
 }
@@ -544,7 +545,7 @@ foreach ($journals as &$journal) {
     gap: 6px;
     background: rgba(255,255,255,0.2);
     backdrop-filter: blur(10px);
-    padding: 6px 14px;
+    padding: 2px 5px;
     border-radius: 50px;
     margin-top: 5px;
     font-size: 12px;
@@ -1189,13 +1190,13 @@ foreach ($journals as &$journal) {
             <!-- Profile Cover / Hero Section - FIXED FOR MOBILE -->
             <div class="profile-cover">
                 <div class="profile-header">
-                    <div class="profile-avatar-wrapper">
+                    <!-- <div class="profile-avatar-wrapper">
                         <div class="profile-avatar" style="<?= $student_profile['profile_picture'] ? 'background-image: url(' . htmlspecialchars($student_profile['profile_picture']) . ')' : '' ?>">
                             <?php if (!$student_profile['profile_picture']): ?>
                                 <?= strtoupper(substr($student_profile['firstname'] ?? '', 0, 1) . substr($student_profile['lastname'] ?? '', 0, 1)) ?>
                             <?php endif; ?>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="profile-info">
                         <h1 class="profile-name">
                             <?= htmlspecialchars($student_profile['firstname'] . ' ' . $student_profile['lastname']) ?>
@@ -1225,6 +1226,10 @@ foreach ($journals as &$journal) {
                                 <div class="stat-value"><?= $student_profile['excited_days'] ?? 0 ?></div>
                                 <div class="stat-label">Excited</div> <!-- Changed from EC to Excited -->
                             </div>
+                            <a href="add_journal.php" class="btn btn-primary rounded-pill px-4 py-2" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
+                                <i class="bi bi-plus-circle me-2"></i>
+                                Add New
+                            </a>
                         </div>
                     </div>
                     <div class="d-none d-md-block ms-auto">
