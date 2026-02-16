@@ -108,6 +108,11 @@ require_once 'google-auth/google-auth.php';
                                 <i class="bi bi-shield-check"></i> Secure authentication powered by Google
                             </small>
                         </div>
+                        <div class="mt-4 text-center">
+                            <small class="text-muted">
+                                <i class="bi bi-people"></i> <a href="../student/">Login as Student</a>
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>

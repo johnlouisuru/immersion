@@ -248,6 +248,29 @@ function total_count_of_requirement($db){
     return $row ? (int)$row['total_requirements'] : 0;
 }
 
+function get_section_assignment($db, $teacher_id) {
+    // Step 1: Get the section_id from teachers table
+    $sql = "SELECT section_id FROM teachers WHERE id = :teacher_id";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([":teacher_id" => $teacher_id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row || !$row['section_id']) {
+        return 'N/A'; // No section assigned
+    }
+
+    $section_id = $row['section_id'];
+
+    // Step 2: Get the section_name from sections table
+    $sql = "SELECT section_name FROM sections WHERE id = :section_id";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([":section_id" => $section_id]);
+    $section = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $section ? $section['section_name'] : 'N/A';
+}
+
+
 function get_requirement_percentage($db, $student_id) {
     $sql = "SELECT COUNT(*) AS checked_count 
             FROM requirements_status 

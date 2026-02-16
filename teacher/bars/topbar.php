@@ -19,8 +19,15 @@
                         <?php  isset($_SESSION['profile_picture']) ? $profile_pic = $_SESSION['profile_picture'] : $profile_pic = "assets/img/user.png" ?>
                         <img src="<?= $profile_pic ?>" alt="" height="30px" width="30px" class="rounded-circle"></a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="#">Settings</a></li>
-                        <li><a class="dropdown-item" href="#">Activity Log</a></li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                Section: <?= empty($_SESSION['teacher_id']) 
+                                    ? 'N/A' 
+                                    : get_section_assignment($pdo, $_SESSION['teacher_id']); ?>
+                            </a>
+                        </li>
+
+                        <!-- <li><a class="dropdown-item" href="#">Activity Log</a></li> -->
                         
                         
                         <li><hr class="dropdown-divider" /></li>

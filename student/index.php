@@ -114,6 +114,11 @@ $google_auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_
                                 <i class="bi bi-shield-check"></i> Secure authentication powered by Google
                             </small>
                         </div>
+                        <div class="mt-4 text-center">
+                            <small class="text-muted">
+                                <i class="bi bi-gear"></i> <a href="../teacher/">Login as Teacher</a>
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>

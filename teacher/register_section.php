@@ -81,14 +81,11 @@
                                         </div>
                                         <div class="mt-4 mb-0">
                                             <div class="d-grid">
-                                                <button class="btn btn-primary btn-block" type="submit">Create Account</button>
+                                                <button class="btn btn-primary btn-block" type="submit">Create Section</button>
                                             </div>
                                         </div>
                                     </form>
 
-                                    </div>
-                                    <div class="card-footer text-center py-3">
-                                        <div class="small"><a href="login.html">Have an account? Go to login</a></div>
                                     </div>
                                 </div>
                             </div>
@@ -120,7 +117,7 @@
                                             <?php foreach ($sections_stmt as $section): ?>
                                                 <tr>
                                                     <td><?= $loop++ ?></td>
-                                                    <td><?= htmlspecialchars($section['section_name']) ?></td>
+                                                    <td><a href="section_class?sn=<?= htmlspecialchars($section['section_name']) ?>&sid=<?= htmlspecialchars($section['id']) ?>"><?= htmlspecialchars($section['section_name']) ?></a></td>
                                                     <td>
                                                         <?= $section['teacher_id']
                                                             ? htmlspecialchars($section['lastname'] . ', ' . $section['firstname'])

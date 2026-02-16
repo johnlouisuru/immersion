@@ -22,7 +22,7 @@ $stmt->execute([$teacher_id]);
 $teacher = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$teacher || !$teacher['section_id']) {
-    $error_message = "You are not assigned to any section. Please contact the administrator.";
+    $error_message = "You are not assigned to any section. Kindly assigned your account to any section since files are binded to section accordingly";
 } else {
     $section_id = $teacher['section_id'];
     
@@ -474,7 +474,7 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
                     <i class="bi bi-exclamation-triangle text-warning" style="font-size: 64px;"></i>
                     <h4 class="mt-4">Access Restricted</h4>
                     <p class="text-muted"><?= htmlspecialchars($error_message) ?></p>
-                    <a href="logout/" class="btn btn-primary mt-3">Logout</a>
+                    <a href="dashboard" class="btn btn-primary mt-3">Back to Dashboard</a>
                 </div>
             </div>
         <?php else: ?>
@@ -761,9 +761,9 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
                                                         </div>
                                                     </div>
                                                     
-                                                    <?php if (file_exists($req['file_path'])): ?>
+                                                    <?php if (file_exists('../student/'.$req['file_path'])): ?>
                                                         <div class="d-flex align-items-center">
-                                                            <a href="<?= $req['file_path'] ?>" class="btn btn-outline-secondary btn-action" target="_blank">
+                                                            <a href="../student/<?= $req['file_path'] ?>" class="btn btn-outline-secondary btn-action" target="_blank">
                                                                 <i class="bi bi-eye"></i>
                                                                 <span>View File</span>
                                                             </a>
