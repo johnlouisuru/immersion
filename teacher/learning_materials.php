@@ -15,7 +15,7 @@ if(empty($_SESSION['lastname']) || empty($_SESSION['firstname'])){
 $teacher_id = $_SESSION['user_id'];
 
 // Get teacher's section
-$query = "SELECT id, section_id, lastname, firstname FROM teachers WHERE id = ? AND is_active = 1";
+$query = "SELECT id, section_id, lastname, firstname FROM teachers WHERE id = ?";
 $stmt = $pdo->prepare($query);
 $stmt->execute([$teacher_id]);
 $teacher = $stmt->fetch(PDO::FETCH_ASSOC);
