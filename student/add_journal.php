@@ -259,6 +259,7 @@ if ($_POST['action'] === 'update_journal' && isset($_POST['journal_id'])) {
             $filename = time() . '_' . uniqid() . '.' . $extension;
             $filepath = $upload_dir . $filename;
             
+            // Move the uploaded file WITHOUT cropping
             if (move_uploaded_file($file['tmp_name'], $filepath)) {
                 $response['success'] = true;
                 $response['path'] = $filepath;
@@ -367,10 +368,6 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    
-    <!-- Cropper.js for Image Cropping -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     
     <!-- SortableJS for Drag & Drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -626,7 +623,7 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         /* Image Preview Grid */
         .image-preview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 16px;
             margin-top: 20px;
         }
@@ -684,12 +681,13 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
             transition: all 0.2s ease;
         }
         
-        .btn-crop {
-            background: #3498db;
-        }
-        
         .btn-delete {
             background: #e74c3c;
+        }
+        
+        .btn-delete:hover {
+            background: #c0392b;
+            transform: scale(1.1);
         }
         
         .image-counter {
@@ -697,55 +695,6 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: 600;
             color: #64748b;
             margin-top: 8px;
-        }
-        
-        /* Cropper Modal */
-        .cropper-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 99999;
-            padding: 20px;
-        }
-        
-        .cropper-modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .cropper-content {
-            background: white;
-            border-radius: 24px;
-            width: 100%;
-            max-width: 800px;
-            overflow: hidden;
-        }
-        
-        .cropper-header {
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #2C3E50, #3498DB);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .cropper-body {
-            padding: 20px;
-        }
-        
-        .cropper-image-container {
-            max-height: 400px;
-            overflow: hidden;
-        }
-        
-        .cropper-image-container img {
-            max-width: 100%;
         }
         
         /* Journal Cards */
@@ -787,7 +736,7 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
             
             .image-preview-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
                 gap: 12px;
             }
         }
@@ -957,7 +906,7 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span>Neutral</span>
                                     </button>
                                     <button type="button" class="mood-btn" data-mood="tired">
-                                        <i class="bi bi-emoji-tired"></i>🫩
+                                        <i class="bi bi-emoji-tired"></i>
                                         <span>Tired</span>
                                     </button>
                                     <button type="button" class="mood-btn" data-mood="stressed">
@@ -985,14 +934,14 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="col-12">
                                 <label class="form-label fw-semibold">
                                     <i class="bi bi-images me-2" style="color: #667eea;"></i>
-                                    Images (Max 5)
+                                    Images (Max 4)
                                 </label>
                                 <div id="imageUploadArea" class="image-upload-area">
                                     <i class="bi bi-cloud-upload"></i>
                                     <h6 class="mb-1">Click or drag images to upload</h6>
                                     <p class="text-muted small mb-2">JPEG, PNG, GIF, WEBP (Max 10MB each)</p>
                                     <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
-                                        <span id="imageCount">0</span>/5 images
+                                        <span id="imageCount">0</span>/4 images
                                     </span>
                                     <input type="file" 
                                            id="imageInput" 
@@ -1183,27 +1132,6 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
     
-    <!-- Cropper Modal -->
-    <div id="cropperModal" class="cropper-modal">
-        <div class="cropper-content">
-            <div class="cropper-header">
-                <h5 class="mb-0"><i class="bi bi-crop me-2"></i>Crop Image</h5>
-                <button type="button" class="btn-close btn-close-white" onclick="closeCropper()"></button>
-            </div>
-            <div class="cropper-body">
-                <div class="cropper-image-container">
-                    <img id="cropperImage" src="" alt="Crop image">
-                </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button class="btn btn-outline-secondary rounded-pill px-4" onclick="closeCropper()">Cancel</button>
-                    <button class="btn btn-primary rounded-pill px-4" onclick="applyCrop()" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
-                        <i class="bi bi-check-lg me-2"></i>Apply Crop
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
@@ -1220,8 +1148,7 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         // GLOBAL VARIABLES
         // ============================================
         let uploadedImages = [];
-        let cropper = null;
-        let currentCroppingImage = null;
+        const MAX_IMAGES = 4; // Changed from 5 to 4
         const reflectionText = document.getElementById('reflectionText');
         
         // ============================================
@@ -1271,7 +1198,6 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 case 'justifyLeft':
                 case 'justifyCenter':
                 case 'justifyRight':
-                    // For simplicity, we'll just add alignment markers
                     formattedText = selectedText;
                     break;
                 case 'insertUnorderedList':
@@ -1372,10 +1298,10 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         const imageInput = document.getElementById('imageInput');
         
         uploadArea.addEventListener('click', function() {
-            if (uploadedImages.length < 5) {
+            if (uploadedImages.length < MAX_IMAGES) {
                 imageInput.click();
             } else {
-                showToast('Maximum 5 images allowed', 'warning');
+                showToast(`Maximum ${MAX_IMAGES} images allowed`, 'warning');
             }
         });
         
@@ -1412,11 +1338,15 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         });
         
         // ============================================
-        // HANDLE IMAGE UPLOAD
+        // HANDLE IMAGE UPLOAD - WITHOUT CROPPING
         // ============================================
         function handleImageUpload(files) {
-            const remainingSlots = 5 - uploadedImages.length;
+            const remainingSlots = MAX_IMAGES - uploadedImages.length;
             const filesToUpload = Array.from(files).slice(0, remainingSlots);
+            
+            if (files.length > remainingSlots) {
+                showToast(`Only ${remainingSlots} more image(s) can be uploaded`, 'warning');
+            }
             
             filesToUpload.forEach(file => {
                 if (!file.type.match('image.*')) {
@@ -1442,11 +1372,7 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     if (data.success) {
                         uploadedImages.push(data);
                         renderImagePreviews();
-                        
-                        // Open cropper for the new image
-                        setTimeout(() => {
-                            openCropper(data.url, uploadedImages.length - 1);
-                        }, 100);
+                        showToast(`${file.name} uploaded successfully`, 'success');
                     } else {
                         showToast(data.message, 'error');
                     }
@@ -1472,9 +1398,6 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 item.innerHTML = `
                     <img src="${img.url}" alt="Preview ${index + 1}">
                     <div class="image-preview-overlay">
-                        <button type="button" class="btn-crop" onclick="openCropper('${img.url}', ${index})">
-                            <i class="bi bi-crop"></i>
-                        </button>
                         <button type="button" class="btn-delete" onclick="deleteImage(${index})">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -1491,61 +1414,20 @@ $existing_journals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         // ============================================
-        // IMAGE CROPPER
+        // DELETE IMAGE
         // ============================================
-        function openCropper(imageUrl, index) {
-            currentCroppingImage = { url: imageUrl, index: index };
+        function deleteImage(index, showToastMessage = true) {
+            const image = uploadedImages[index];
             
-            const modal = document.getElementById('cropperModal');
-            const img = document.getElementById('cropperImage');
+            // Confirm deletion
+            if (!confirm('Are you sure you want to delete this image?')) {
+                return;
+            }
             
-            modal.classList.add('active');
-            img.src = imageUrl;
-            
-            setTimeout(() => {
-                if (cropper) {
-                    cropper.destroy();
-                }
-                
-                cropper = new Cropper(img, {
-                    aspectRatio: NaN,
-                    viewMode: 1,
-                    dragMode: 'move',
-                    cropBoxMovable: true,
-                    cropBoxResizable: true,
-                    toggleDragModeOnDblclick: false
-                });
-            }, 100);
-        }
-        
-        // ============================================
-// FIXED: IMAGE CROPPER - Now preserves original
-// ============================================
-function applyCrop() {
-    if (cropper && currentCroppingImage) {
-        const canvas = cropper.getCroppedCanvas({
-            width: 800,
-            height: 600,
-            fillColor: '#fff',
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high'
-        });
-        
-        // Show loading
-        showToast('Processing cropped image...', 'info');
-        
-        canvas.toBlob(function(blob) {
-            // Create file from blob with UNIQUE filename
-            const timestamp = Date.now();
-            const random = Math.random().toString(36).substring(2, 15);
-            const file = new File([blob], `cropped_${timestamp}_${random}.jpg`, { 
-                type: 'image/jpeg' 
-            });
-            
-            // Upload cropped image as NEW file
+            // Delete from server
             const formData = new FormData();
-            formData.append('action', 'upload_image');
-            formData.append('image', file);
+            formData.append('action', 'delete_image');
+            formData.append('image_path', image.path);
             
             fetch(window.location.href, {
                 method: 'POST',
@@ -1554,71 +1436,20 @@ function applyCrop() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // DON'T delete the old image - keep it as separate version
-                    // Just add the new cropped version
-                    uploadedImages.push(data);
+                    uploadedImages.splice(index, 1);
                     renderImagePreviews();
-                    
-                    showToast('Image cropped and added successfully', 'success');
-                    closeCropper();
+                    if (showToastMessage) {
+                        showToast('Image deleted successfully', 'success');
+                    }
                 } else {
-                    showToast(data.message, 'error');
+                    showToast('Failed to delete image', 'error');
                 }
             })
             .catch(error => {
-                showToast('Error processing image', 'error');
+                showToast('Error deleting image', 'error');
                 console.error(error);
             });
-        }, 'image/jpeg', 0.92);
-    }
-}
-        
-        function closeCropper() {
-            document.getElementById('cropperModal').classList.remove('active');
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-            currentCroppingImage = null;
         }
-        
-        // ============================================
-// FIXED: DELETE IMAGE - Better cleanup
-// ============================================
-function deleteImage(index, showToastMessage = true) {
-    const image = uploadedImages[index];
-    
-    // Confirm deletion
-    if (!confirm('Are you sure you want to delete this image?')) {
-        return;
-    }
-    
-    // Delete from server
-    const formData = new FormData();
-    formData.append('action', 'delete_image');
-    formData.append('image_path', image.path);
-    
-    fetch(window.location.href, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            uploadedImages.splice(index, 1);
-            renderImagePreviews();
-            if (showToastMessage) {
-                showToast('Image deleted successfully', 'success');
-            }
-        } else {
-            showToast('Failed to delete image', 'error');
-        }
-    })
-    .catch(error => {
-        showToast('Error deleting image', 'error');
-        console.error(error);
-    });
-}
         
         // ============================================
         // SORTABLE DRAG AND DROP
