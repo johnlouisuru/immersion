@@ -7,6 +7,115 @@ if (!isLoggedIn()) {
     exit;
 }
 
+// Handle delete request
+if (isset($_POST['delete_journal']) && isset($_POST['journal_id'])) {
+    $journal_id = $_POST['journal_id'];
+    $student_id = $_SESSION['user_id'];
+    
+    try {
+        // Start transaction
+        $pdo->beginTransaction();
+        
+        // First, get all images to delete files from server
+        $images_query = "SELECT image_path FROM journal_images WHERE journal_id = ?";
+        $stmt = $pdo->prepare($images_query);
+        $stmt->execute([$journal_id]);
+        $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Delete image files from server using multiple possible path variations
+        foreach ($images as $image) {
+            $deleted = false;
+            $paths_to_try = [];
+            
+            // Get the relative path from database
+            $db_path = $image['image_path'];
+            
+            // Try different path variations
+            $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($db_path, '/');
+            $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . '/student-journal/' . ltrim($db_path, '/');
+            $paths_to_try[] = __DIR__ . '/../' . ltrim($db_path, '/');
+            $paths_to_try[] = __DIR__ . '/' . ltrim($db_path, '/');
+            
+            // If the path already starts with http, try to extract the relative path
+            if (strpos($db_path, 'http') === 0) {
+                $parsed_url = parse_url($db_path);
+                if (isset($parsed_url['path'])) {
+                    $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . $parsed_url['path'];
+                }
+            }
+            
+            // Try each path
+            foreach ($paths_to_try as $full_path) {
+                if (file_exists($full_path)) {
+                    if (unlink($full_path)) {
+                        $deleted = true;
+                        error_log("Successfully deleted: " . $full_path);
+                        break;
+                    }
+                }
+            }
+            
+            if (!$deleted) {
+                error_log("Could not delete file: " . $db_path);
+            }
+        }
+        
+        // After deleting all images, try to clean up the folder
+        // Get the folder path from the first image
+        if (!empty($images)) {
+            $first_image = $images[0]['image_path'];
+            $folder_relative = dirname(ltrim($first_image, '/'));
+            
+            // Try to find and delete the folder if empty
+            $folder_paths_to_try = [
+                $_SERVER['DOCUMENT_ROOT'] . '/' . $folder_relative,
+                $_SERVER['DOCUMENT_ROOT'] . '/student-journal/' . $folder_relative,
+                __DIR__ . '/../' . $folder_relative,
+                __DIR__ . '/' . $folder_relative
+            ];
+            
+            foreach ($folder_paths_to_try as $folder_path) {
+                if (is_dir($folder_path)) {
+                    $files = array_diff(scandir($folder_path), array('.', '..'));
+                    if (empty($files)) {
+                        rmdir($folder_path);
+                        error_log("Removed empty folder: " . $folder_path);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Delete journal images from database
+        $delete_images = "DELETE FROM journal_images WHERE journal_id = ?";
+        $stmt = $pdo->prepare($delete_images);
+        $stmt->execute([$journal_id]);
+        
+        // Delete the journal
+        $delete_journal = "DELETE FROM student_journals WHERE id = ? AND student_id = ?";
+        $stmt = $pdo->prepare($delete_journal);
+        $stmt->execute([$journal_id, $student_id]);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        $_SESSION['success_message'] = "Journal entry and all associated images deleted successfully!";
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        $pdo->rollBack();
+        $_SESSION['error_message'] = "Error deleting journal: " . $e->getMessage();
+        error_log("Delete error: " . $e->getMessage());
+    }
+    
+    // Redirect to refresh the page
+    header('Location: view_journals.php');
+    exit;
+}
+
+// Rest of your code continues here...
+// Rest of your code remains the same...
+
 $student_id = $_SESSION['user_id'];
 
 // Get student information with stats
@@ -82,6 +191,9 @@ foreach ($journals as $key => $journal) {
     <!-- Lightbox for image viewing -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css">
     
+    <!-- SweetAlert2 for beautiful alerts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
     <style>
         * {
             margin: 0;
@@ -143,6 +255,45 @@ foreach ($journals as $key => $journal) {
             border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        /* Alert Messages */
+        .alert-message {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-success {
+            background: #10b981;
+            color: white;
+            border-left: 4px solid #059669;
+        }
+        
+        .alert-error {
+            background: #ef4444;
+            color: white;
+            border-left: 4px solid #dc2626;
         }
         
         /* Journal Grid */
@@ -157,6 +308,12 @@ foreach ($journals as $key => $journal) {
             border-radius: 24px;
             overflow: hidden;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .journal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
         
         /* Image Gallery */
@@ -177,6 +334,11 @@ foreach ($journals as $key => $journal) {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .journal-gallery img:hover {
+            transform: scale(1.05);
         }
         
         /* Content */
@@ -232,17 +394,40 @@ foreach ($journals as $key => $journal) {
             border-top: 1px solid #e2e8f0;
         }
         
-        .btn-edit {
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-edit, .btn-delete {
             border: 1px solid #e2e8f0;
             padding: 8px 20px;
             border-radius: 50px;
             text-decoration: none;
-            color: #64748b;
+            font-size: 14px;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: white;
+        }
+        
+        .btn-edit {
+            color: #667eea;
         }
         
         .btn-edit:hover {
             background: #667eea;
             color: white;
+            border-color: #667eea;
+        }
+        
+        .btn-delete {
+            color: #ef4444;
+        }
+        
+        .btn-delete:hover {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
         }
         
         /* Empty State */
@@ -251,6 +436,32 @@ foreach ($journals as $key => $journal) {
             padding: 80px 20px;
             background: white;
             border-radius: 30px;
+        }
+        
+        /* Delete Confirmation Modal (hidden by default) */
+        .delete-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .delete-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            max-width: 400px;
+            text-align: center;
         }
         
         @media (max-width: 768px) {
@@ -266,6 +477,24 @@ foreach ($journals as $key => $journal) {
 </head>
 <body>
     <div class="container">
+        
+        <!-- Display Success/Error Messages -->
+        <?php if (isset($_SESSION['success_message'])): ?>
+            <div class="alert-message alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <?= $_SESSION['success_message'] ?>
+            </div>
+            <?php unset($_SESSION['success_message']); ?>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error_message'])): ?>
+            <div class="alert-message alert-error">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <?= $_SESSION['error_message'] ?>
+            </div>
+            <?php unset($_SESSION['error_message']); ?>
+        <?php endif; ?>
+        
         <?php if (empty($journals)): ?>
             <!-- Empty State -->
             <div class="empty-state">
@@ -302,17 +531,19 @@ foreach ($journals as $key => $journal) {
                     <a href="add_journal.php" class="btn-add">+ New Entry</a>
                 </div>
             </div>
-            <!-- Add this after the profile header div, before the journals grid -->
-<div style="text-align: right; margin-bottom: 20px;">
-    <a href="generate_pdf_journal.php" target="_blank" class="btn btn-success" style="background: #28a745; color: white; padding: 12px 30px; border-radius: 50px; text-decoration: none; display: inline-block;">
-        <i class="bi bi-file-pdf me-2"></i>
-        Generate E-Journal (PDF)
-    </a>
-</div>
+            
+            <!-- PDF Generate Button -->
+            <div style="text-align: right; margin-bottom: 20px;">
+                <a href="generate_pdf_journal.php" target="_blank" class="btn-add" style="background: #28a745; color: white;">
+                    <i class="bi bi-file-pdf me-2"></i>
+                    Generate E-Journal (PDF)
+                </a>
+            </div>
+            
             <!-- Journals Grid -->
             <div class="journal-grid">
                 <?php foreach ($journals as $journal): ?>
-                    <div class="journal-card">
+                    <div class="journal-card" id="journal-<?= $journal['id'] ?>">
                         
                         <!-- Images -->
                         <?php if (!empty($journal['images'])): ?>
@@ -349,12 +580,18 @@ foreach ($journals as $key => $journal) {
                             <div class="journal-footer">
                                 <span>
                                     <i class="bi bi-camera me-1"></i>
-                                    <?= $journal['image_count'] ?> photos
+                                    <?= $journal['image_count'] ?> <?= $journal['image_count'] == 1 ? 'photo' : 'photos' ?>
                                 </span>
                                 
-                                <a href="add_journal.php?edit=<?= $journal['id'] ?>" class="btn-edit">
-                                    <i class="bi bi-pencil me-1"></i> Edit
-                                </a>
+                                <div class="action-buttons">
+                                    <!-- <a href="add_journal.php?edit=<?= $journal['id'] ?>" class="btn-edit">
+                                        <i class="bi bi-pencil me-1"></i> Edit
+                                    </a> -->
+                                    
+                                    <button type="button" class="btn-delete" onclick="confirmDelete(<?= $journal['id'] ?>, '<?= addslashes($journal['title']) ?>')">
+                                        <i class="bi bi-trash me-1"></i> Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -364,9 +601,16 @@ foreach ($journals as $key => $journal) {
         <?php endif; ?>
     </div>
     
+    <!-- Hidden Delete Form -->
+    <form id="deleteForm" method="POST" style="display: none;">
+        <input type="hidden" name="delete_journal" value="1">
+        <input type="hidden" name="journal_id" id="delete_journal_id" value="">
+    </form>
+    
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         lightbox.option({
@@ -374,6 +618,39 @@ foreach ($journals as $key => $journal) {
             'wrapAround': true,
             'albumLabel': 'Image %1 of %2'
         });
+        
+        // Auto-hide alert messages after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-message');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+        
+        // Delete confirmation function using SweetAlert2
+        function confirmDelete(journalId, journalTitle) {
+            Swal.fire({
+                title: 'Delete Journal Entry?',
+                html: `Are you sure you want to delete "<strong>${journalTitle}</strong>"?<br><br>
+                       <span style="color: #ef4444; font-size: 0.9em;">
+                       <i class="bi bi-exclamation-triangle"></i> 
+                       This will also delete all associated photos permanently!
+                       </span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    document.getElementById('delete_journal_id').value = journalId;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
     </script>
 </body>
 </html>
