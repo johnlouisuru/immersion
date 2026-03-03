@@ -99,9 +99,11 @@ class MYPDF extends TCPDF {
         // Add document label
         $this->SetFont('helvetica', 'B', 10);
         $this->SetTextColor(100, 116, 139);
-        // $this->Cell(0, 20, $file['req_name'] . ' - ' . date('M d, Y', strtotime($file['date_created'])), 0, 1, 'L');
-        $this->Cell(0, 20, $file['req_name'] . ' : ', 0, 1, 'L');
-        $this->Ln(5);
+        $this->Cell(0, 6, $file['req_name'], 0, 1, 'L');
+        $this->Ln(2);
+        
+        // Calculate available space for content
+        $page_height = $this->getPageHeight() - $this->GetY() - 30; // 30mm for footer and margins
         
         switch($file_ext_lower) {
             case 'pdf':
@@ -113,7 +115,7 @@ class MYPDF extends TCPDF {
                             $this->AddPage();
                         }
                         $tplIdx = $this->importPage($i);
-                        $this->useTemplate($tplIdx, 15, 40, 180);
+                        $this->useTemplate($tplIdx, 15, $this->GetY(), 180);
                     }
                 } catch (Exception $e) {
                     $this->SetFont('helvetica', '', 12);
@@ -125,27 +127,37 @@ class MYPDF extends TCPDF {
             case 'jpg':
             case 'jpeg':
             case 'png':
-                // Display image - get dimensions to optimize placement
+                // Display image - get dimensions to fit on single page
                 list($width, $height) = @getimagesize($file['file_path']);
                 if ($width && $height) {
-                    // Calculate ratio to fit within page margins
-                    $max_width = 180;
-                    $max_height = 230; // Leave space for header
+                    // Calculate available width (accounting for margins)
+                    $max_width = 180; // 210mm - 30mm margins
                     
-                    $ratio_w = $max_width / $width;
-                    $ratio_h = $max_height / $height;
-                    $ratio = min($ratio_w, $ratio_h);
-                    
-                    $new_width = $width * $ratio;
+                    // Calculate ratio to fit within page width
+                    $ratio = $max_width / $width;
+                    $new_width = $max_width;
                     $new_height = $height * $ratio;
                     
-                    // Center the image
+                    // Check if height exceeds available space
+                    if ($new_height > $page_height) {
+                        // If too tall, scale down to fit height instead
+                        $ratio = $page_height / $height;
+                        $new_width = $width * $ratio;
+                        $new_height = $page_height;
+                    }
+                    
+                    // Center the image horizontally
                     $x = (210 - $new_width) / 2;
                     $y = $this->GetY();
                     
+                    // Add some top padding for better appearance
+                    if ($new_height < $page_height) {
+                        $y = $y + (($page_height - $new_height) / 4); // Center vertically with some padding
+                    }
+                    
                     $this->Image($file['file_path'], $x, $y, $new_width, $new_height, '', '', 'T', true, 300);
                 } else {
-                    // If we can't get dimensions, use default sizing
+                    // If we can't get dimensions, use default sizing with height constraint
                     $this->Image($file['file_path'], 15, $this->GetY(), 180, 0, '', '', 'T', true, 300);
                 }
                 break;
@@ -180,12 +192,12 @@ $pdf->SetAuthor('Requirements System');
 $pdf->SetTitle('Requirements - ' . $student['firstname'] . ' ' . $student['lastname']);
 
 // Set margins - leave space for minimal header
-$pdf->SetMargins(15, 40, 15);
+$pdf->SetMargins(15, 35, 15);
 $pdf->SetHeaderMargin(10);
-$pdf->SetFooterMargin(15);
+$pdf->SetFooterMargin(20);
 
-// Set auto page breaks
-$pdf->SetAutoPageBreak(TRUE, 25);
+// Set auto page breaks - set to false to prevent automatic page breaks
+$pdf->SetAutoPageBreak(FALSE, 25);
 
 // Set image scale factor
 $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
