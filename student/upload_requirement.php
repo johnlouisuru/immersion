@@ -320,16 +320,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <div class="requirements-container">
         <!-- Main Card -->
         <div class="main-card card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5>
-                    <i class="bi bi-file-earmark-text"></i>
-                    My Files
-                </h5>
-                <span class="requirement-badge">
-                    <i class="bi bi-clock-history"></i>
-                    <?= count($pending_requirements) ?> Pending
-                </span>
-            </div>
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5>
+        <i class="bi bi-file-earmark-text"></i>
+        My Files
+    </h5>
+    <div class="d-flex gap-2">
+        <a href="generate_requirements_pdf.php" target="_blank" class="btn btn-light" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+            <i class="bi bi-file-pdf me-2"></i>
+            Generate PDF Report
+        </a>
+        <span class="requirement-badge">
+            <i class="bi bi-clock-history"></i>
+            <?= count($pending_requirements) ?> Pending
+        </span>
+    </div>
+</div>
             
             <div class="card-body p-4">
              <a href="dashboard" type="submit" class="btn btn-primary btn-lg w-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
