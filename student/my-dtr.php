@@ -448,6 +448,9 @@ $avg_hours_per_day = count($daily_records) > 0 ? round($total_hours_all / count(
                             <?= $period_label ?>
                         </span>
                     </div>
+                    <a href="dashboard" class="btn-print no-print">
+                        <i class="bi bi-speedometer me-2"></i>Dashboard
+                    </a>
                     <button onclick="window.print()" class="btn-print no-print">
                         <i class="bi bi-printer me-2"></i>Print DTR
                     </button>
