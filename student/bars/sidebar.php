@@ -21,6 +21,10 @@
                                 <div class="sb-nav-link-icon"><i class="fas fa-map-marker-alt"></i></div>
                                 Take Attendance
                             </a>
+                            <a class="nav-link" href="my-dtr">
+                                <div class="sb-nav-link-icon"><i class="fas fa-calendar-alt"></i></div>
+                                Overall DTR
+                            </a>
                             <div class="sb-sidenav-menu-heading">Requirements Status</div>
                             <a class="nav-link" href="requirement_page">
                                         <div class="sb-nav-link-icon"><i class="fas fa-file-alt"></i></div>
