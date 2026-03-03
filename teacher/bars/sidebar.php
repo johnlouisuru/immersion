@@ -107,6 +107,7 @@
                                         <nav class="sb-sidenav-menu-nested nav">
                                             <a class="nav-link" href="register_requirement">Add Requirement</a>
                                             <a class="nav-link" href="register">Assign Student</a>
+                                            <a class="nav-link" href="assign_company">Assign company</a>
                                             <a class="nav-link" href="register_section">New Section</a>
                                             <a class="nav-link" href="register_teacher">Assign Teacher</a>
                                         </nav>
