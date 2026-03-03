@@ -58,8 +58,8 @@
                                                 <tr>
                                                     <th>#</th>
                                                     <th>Student Name</th>
-                                                    <th>Section</th>
-                                                    <th>Company</th>
+                                                    <!-- <th>Section</th> -->
+                                                    <th colspan="2">Company</th>
                                                     <th>Action</th>
                                                 </tr>
 
@@ -82,9 +82,9 @@
                                                     <tr>
                                                         <td><?= $loop ?></td>
                                                         <td><?= htmlspecialchars($fetched['lastname']) ?>, <?= htmlspecialchars($fetched['firstname']) ?></td>
-                                                        <td>
+                                                        <!-- <td> -->
                                                             <!-- Section Dropdown -->
-                                                            <form method="POST" action="update_section" style="display:inline;">
+                                                            <!-- <form method="POST" action="update_section" style="display:inline;">
                                                                 <input type="hidden" name="student_id" value="<?= $fetched['id'] ?>">
                                                                 <select name="section_id" class="form-select" onchange="this.form.submit()">
                                                                     <option value="">-- Select Section --</option>
@@ -96,22 +96,22 @@
                                                                         </option>
                                                                     <?php endforeach; ?>
                                                                 </select>
-                                                            </form>
-                                                        </td>
-                                                        <td>
+                                                            </form> -->
+                                                        <!-- </td> -->
+                                                        <td colspan="2">
                                                             <!-- Company Text Field -->
                                                             <form method="POST" action="update_company" id="company_form_<?= $fetched['id'] ?>">
                                                                 <input type="hidden" name="student_id" value="<?= $fetched['id'] ?>">
-                                                                <input type="text" 
+                                                                <textarea 
                                                                        name="company" 
                                                                        class="form-control form-control-sm" 
                                                                        value="<?= htmlspecialchars($fetched['company'] ?? '') ?>" 
-                                                                       placeholder="Enter company name">
+                                                                       placeholder="Enter company name"><?= htmlspecialchars($fetched['company'] ?? '') ?></textarea>
                                                         </td>
                                                         <td>
                                                                 <!-- Update Button -->
-                                                                <button type="submit" class="btn btn-sm btn-primary">
-                                                                    Update
+                                                                <button type="submit" class="btn btn-sm btn-success">
+                                                                    ✅
                                                                 </button>
                                                             </form>
                                                         </td>
