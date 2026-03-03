@@ -7,118 +7,14 @@ if (!isLoggedIn()) {
     exit;
 }
 
-// Handle delete request
+// Handle delete request (keep your existing delete code here...)
 if (isset($_POST['delete_journal']) && isset($_POST['journal_id'])) {
-    $journal_id = $_POST['journal_id'];
-    $student_id = $_SESSION['user_id'];
-    
-    try {
-        // Start transaction
-        $pdo->beginTransaction();
-        
-        // First, get all images to delete files from server
-        $images_query = "SELECT image_path FROM journal_images WHERE journal_id = ?";
-        $stmt = $pdo->prepare($images_query);
-        $stmt->execute([$journal_id]);
-        $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Delete image files from server using multiple possible path variations
-        foreach ($images as $image) {
-            $deleted = false;
-            $paths_to_try = [];
-            
-            // Get the relative path from database
-            $db_path = $image['image_path'];
-            
-            // Try different path variations
-            $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($db_path, '/');
-            $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . '/student-journal/' . ltrim($db_path, '/');
-            $paths_to_try[] = __DIR__ . '/../' . ltrim($db_path, '/');
-            $paths_to_try[] = __DIR__ . '/' . ltrim($db_path, '/');
-            
-            // If the path already starts with http, try to extract the relative path
-            if (strpos($db_path, 'http') === 0) {
-                $parsed_url = parse_url($db_path);
-                if (isset($parsed_url['path'])) {
-                    $paths_to_try[] = $_SERVER['DOCUMENT_ROOT'] . $parsed_url['path'];
-                }
-            }
-            
-            // Try each path
-            foreach ($paths_to_try as $full_path) {
-                if (file_exists($full_path)) {
-                    if (unlink($full_path)) {
-                        $deleted = true;
-                        error_log("Successfully deleted: " . $full_path);
-                        break;
-                    }
-                }
-            }
-            
-            if (!$deleted) {
-                error_log("Could not delete file: " . $db_path);
-            }
-        }
-        
-        // After deleting all images, try to clean up the folder
-        // Get the folder path from the first image
-        if (!empty($images)) {
-            $first_image = $images[0]['image_path'];
-            $folder_relative = dirname(ltrim($first_image, '/'));
-            
-            // Try to find and delete the folder if empty
-            $folder_paths_to_try = [
-                $_SERVER['DOCUMENT_ROOT'] . '/' . $folder_relative,
-                $_SERVER['DOCUMENT_ROOT'] . '/student-journal/' . $folder_relative,
-                __DIR__ . '/../' . $folder_relative,
-                __DIR__ . '/' . $folder_relative
-            ];
-            
-            foreach ($folder_paths_to_try as $folder_path) {
-                if (is_dir($folder_path)) {
-                    $files = array_diff(scandir($folder_path), array('.', '..'));
-                    if (empty($files)) {
-                        rmdir($folder_path);
-                        error_log("Removed empty folder: " . $folder_path);
-                    }
-                    break;
-                }
-            }
-        }
-        
-        // Delete journal images from database
-        $delete_images = "DELETE FROM journal_images WHERE journal_id = ?";
-        $stmt = $pdo->prepare($delete_images);
-        $stmt->execute([$journal_id]);
-        
-        // Delete the journal
-        $delete_journal = "DELETE FROM student_journals WHERE id = ? AND student_id = ?";
-        $stmt = $pdo->prepare($delete_journal);
-        $stmt->execute([$journal_id, $student_id]);
-        
-        // Commit transaction
-        $pdo->commit();
-        
-        $_SESSION['success_message'] = "Journal entry and all associated images deleted successfully!";
-        
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $pdo->rollBack();
-        $_SESSION['error_message'] = "Error deleting journal: " . $e->getMessage();
-        error_log("Delete error: " . $e->getMessage());
-    }
-    
-    // Redirect to refresh the page
-    header('Location: view_journals.php');
-    exit;
+    // ... (keep your existing delete code)
 }
-
-// Rest of your code continues here...
-// Rest of your code remains the same...
 
 $student_id = $_SESSION['user_id'];
 
-// Get student information with stats
+// Get student information with stats (keep your existing queries)
 $student_query = "
     SELECT 
         s.*,
@@ -279,7 +175,7 @@ foreach ($journals as $key => $journal) {
                 transform: translateY(-20px);
             }
             to {
-                opacity: 1;
+                opacity: 0;
                 transform: translateY(0);
             }
         }
@@ -361,6 +257,24 @@ foreach ($journals as $key => $journal) {
             font-weight: 700;
             color: #1e293b;
             margin-bottom: 10px;
+            cursor: pointer;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .journal-title:hover {
+            color: #667eea;
+        }
+        
+        .journal-title i {
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+        }
+        
+        .journal-title.active i {
+            transform: rotate(180deg);
         }
         
         .journal-meta {
@@ -384,6 +298,25 @@ foreach ($journals as $key => $journal) {
             color: #334155;
             line-height: 1.7;
             margin-bottom: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+            padding-top: 15px;
+            border-top: 1px dashed #e2e8f0;
+        }
+        
+        .journal-reflection.show {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .journal-footer {
@@ -462,6 +395,14 @@ foreach ($journals as $key => $journal) {
             border-radius: 24px;
             max-width: 400px;
             text-align: center;
+        }
+        
+        /* Stats for expanded/collapsed */
+        .reflection-preview {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-style: italic;
         }
         
         @media (max-width: 768px) {
@@ -563,7 +504,11 @@ foreach ($journals as $key => $journal) {
                                 <?= date('M d, Y', strtotime($journal['journal_date'])) ?>
                             </span>
                             
-                            <h2 class="journal-title"><?= htmlspecialchars($journal['title']) ?></h2>
+                            <!-- Clickable Title -->
+                            <div class="journal-title" onclick="toggleReflection(<?= $journal['id'] ?>)">
+                                <?= htmlspecialchars($journal['title']) ?>
+                                <i class="bi bi-chevron-down" id="chevron-<?= $journal['id'] ?>"></i>
+                            </div>
                             
                             <?php if ($journal['mood']): ?>
                                 <div class="journal-meta">
@@ -573,9 +518,18 @@ foreach ($journals as $key => $journal) {
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="journal-reflection">
+                            <!-- Reflection (Hidden Initially) -->
+                            <div class="journal-reflection" id="reflection-<?= $journal['id'] ?>">
                                 <?= nl2br(htmlspecialchars($journal['reflection'])) ?>
                             </div>
+                            
+                            <!-- Short Preview (Optional - can be removed if not needed) -->
+                            <?php if (strlen($journal['reflection']) > 100): ?>
+                                <div class="reflection-preview" id="preview-<?= $journal['id'] ?>">
+                                    <?= htmlspecialchars(substr($journal['reflection'], 0, 100)) ?>...
+                                    <a href="#" onclick="toggleReflection(<?= $journal['id'] ?>); return false;">Read more</a>
+                                </div>
+                            <?php endif; ?>
                             
                             <div class="journal-footer">
                                 <span>
@@ -628,6 +582,54 @@ foreach ($journals as $key => $journal) {
                 setTimeout(() => alert.remove(), 500);
             });
         }, 5000);
+        
+        // Toggle reflection visibility
+        function toggleReflection(journalId) {
+            const reflection = document.getElementById(`reflection-${journalId}`);
+            const chevron = document.getElementById(`chevron-${journalId}`);
+            const preview = document.getElementById(`preview-${journalId}`);
+            
+            if (reflection) {
+                reflection.classList.toggle('show');
+                
+                // Toggle chevron icon
+                if (chevron) {
+                    if (reflection.classList.contains('show')) {
+                        chevron.classList.remove('bi-chevron-down');
+                        chevron.classList.add('bi-chevron-up');
+                    } else {
+                        chevron.classList.remove('bi-chevron-up');
+                        chevron.classList.add('bi-chevron-down');
+                    }
+                }
+                
+                // Hide preview if it exists and reflection is shown
+                if (preview) {
+                    if (reflection.classList.contains('show')) {
+                        preview.style.display = 'none';
+                    } else {
+                        preview.style.display = 'block';
+                    }
+                }
+            }
+        }
+        
+        // Optional: Auto-expand if URL has hash (for direct linking to specific journal)
+        window.addEventListener('load', function() {
+            if (window.location.hash) {
+                const journalId = window.location.hash.replace('#journal-', '');
+                if (journalId) {
+                    setTimeout(() => {
+                        toggleReflection(journalId);
+                        // Scroll to the journal
+                        document.getElementById(`journal-${journalId}`).scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }, 500);
+                }
+            }
+        });
         
         // Delete confirmation function using SweetAlert2
         function confirmDelete(journalId, journalTitle) {
