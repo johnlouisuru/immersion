@@ -85,7 +85,7 @@ if ($user) {
     header('Location: dashboard');
 } else {
     // New user - store Google info in session and redirect to complete profile
-    $_SESSION['google_id'] = $user_info['google_id'];
+    $_SESSION['google_id'] = $user_info['id'];  // ← Fix: Use 'id' not 'google_id'
     $_SESSION['user_id'] = $user_info['id']; 
     $_SESSION['teacher_id'] = $user_info['id']; 
     $_SESSION['email'] = $user_info['email'];

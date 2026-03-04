@@ -10,7 +10,8 @@ error_log("Session profile_complete: " . ($_SESSION['profile_complete'] ?? 'not 
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // Redirect if not authenticated
 if (!isGoogleAuthenticated()) {
-    header('Location: index');
+    // header('Location: index');
+    echo "Not Authenticated! Redirecting to login...";
     exit;
 }
 
