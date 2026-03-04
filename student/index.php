@@ -89,7 +89,7 @@ $google_auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-12 col-sm-10 col-md-8 col-lg-4">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-12 col-xl-6">
                 <div class="login-card">
                     <div class="login-header">
                         <i class="bi bi-mortarboard-fill" style="font-size: 3rem;"></i>

@@ -83,7 +83,7 @@ require_once 'google-auth/google-auth.php';
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-12 col-sm-10 col-md-8 col-lg-4">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-12 col-xl-6">
                 <div class="login-card">
                     <div class="login-header">
                         <i class="bi bi-mortarboard-fill" style="font-size: 3rem;"></i>
