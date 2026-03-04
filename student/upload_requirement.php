@@ -338,9 +338,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 </div>
             
             <div class="card-body p-4">
-             <a href="dashboard" type="submit" class="btn btn-primary btn-lg w-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+             <a href="dashboard" type="submit" class="btn btn-primary btn-lg w-100" style="background: linear-gradient(135deg, #66ea92 0%, #764ba2 100%); border: none;">
                                         <i class="bi bi-arrow-left-circle"></i>
-                                        List of Requirements
+                                        Back to Dashboard
                                     </a>
                                     <hr />
                 <!-- Upload Section -->

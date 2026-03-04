@@ -475,6 +475,10 @@ foreach ($journals as $key => $journal) {
             
             <!-- PDF Generate Button -->
             <div style="text-align: right; margin-bottom: 20px;">
+                <a href="dashboard.php" target="_blank" class="btn-add" style="background: #3d82e9; color: white;">
+                    <i class="bi bi-speedometer me-2"></i>
+                   Back to Dashboard
+                </a>
                 <a href="generate_pdf_journal.php" target="_blank" class="btn-add" style="background: #28a745; color: white;">
                     <i class="bi bi-file-pdf me-2"></i>
                     Generate E-Journal (PDF)
