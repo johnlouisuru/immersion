@@ -240,7 +240,7 @@ function get_student_name($db, $student_id){
 }
 
 function total_count_of_requirement($db){
-    $sql = "SELECT COUNT(*) AS total_requirements FROM requirements";
+    $sql = "SELECT COUNT(*) AS total_requirements FROM requirements WHERE is_active = 1";
     $stmt = $db->prepare($sql);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
