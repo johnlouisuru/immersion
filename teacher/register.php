@@ -142,7 +142,7 @@ if ($teacher_section_id) {
                                                                     </select>
                                                                 </form>
                                                                 <small class="text-muted d-block mt-1">
-                                                                    <i class="fas fa-info-circle"></i> Can only assign to your section
+                                                                    <i class="fas fa-info-circle"></i> Once assigned to other section, student will not be listed in your section anymore.
                                                                 </small>
                                                             </td>
                                                             <td>
