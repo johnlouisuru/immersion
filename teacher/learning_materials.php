@@ -1,7 +1,7 @@
 <?php
 require("db-config/security.php");
 
-    // Redirect if not logged in
+// Redirect if not logged in
 if (!isLoggedIn()) {
     header('Location: index');
     exit;
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $new_filename = preg_replace('/[^a-zA-Z0-9\-\_\.]/', '', $_POST['new_filename']);
         $new_filename = $new_filename . '.pdf';
         
-        // Get current file info
+        // Get current file info (ensure it belongs to this teacher)
         $query = "SELECT file_path, file_name FROM learning_materials WHERE id = ? AND teacher_id = ?";
         $stmt = $pdo->prepare($query);
         $stmt->execute([$material_id, $teacher_id]);
@@ -151,6 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $response['message'] = 'Failed to rename file.';
                 }
             }
+        } else {
+            $response['message'] = 'Material not found or you do not have permission.';
         }
         
         echo json_encode($response);
@@ -161,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'delete' && isset($_POST['material_id'])) {
         $material_id = $_POST['material_id'];
         
-        // Get file info
+        // Get file info (ensure it belongs to this teacher)
         $query = "SELECT file_path FROM learning_materials WHERE id = ? AND teacher_id = ?";
         $stmt = $pdo->prepare($query);
         $stmt->execute([$material_id, $teacher_id]);
@@ -183,6 +185,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } else {
                 $response['message'] = 'Failed to delete from database.';
             }
+        } else {
+            $response['message'] = 'Material not found or you do not have permission.';
         }
         
         echo json_encode($response);
@@ -209,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all learning materials for this section
+// Get learning materials uploaded by this teacher only
 $materials_query = "
     SELECT 
         lm.*,
@@ -217,15 +221,17 @@ $materials_query = "
         t.firstname as teacher_firstname
     FROM learning_materials lm
     JOIN teachers t ON lm.teacher_id = t.id
-    WHERE lm.section_id = ? AND lm.is_active = 1
+    WHERE lm.section_id = ? 
+    AND lm.is_active = 1 
+    AND lm.teacher_id = ?  -- Only show materials uploaded by this teacher
     ORDER BY lm.uploaded_at DESC
 ";
 
 $stmt = $pdo->prepare($materials_query);
-$stmt->execute([$section_id]);
+$stmt->execute([$section_id, $teacher_id]);
 $learning_materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get statistics
+// Get statistics (only for this teacher's materials)
 $stats_query = "
     SELECT 
         COUNT(*) as total_materials,
@@ -233,11 +239,13 @@ $stats_query = "
         SUM(download_count) as total_downloads,
         MAX(uploaded_at) as latest_upload
     FROM learning_materials
-    WHERE section_id = ? AND is_active = 1
+    WHERE section_id = ? 
+    AND is_active = 1
+    AND teacher_id = ?  -- Only count this teacher's materials
 ";
 
 $stmt = $pdo->prepare($stats_query);
-$stmt->execute([$section_id]);
+$stmt->execute([$section_id, $teacher_id]);
 $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Format total size
@@ -259,8 +267,8 @@ if ($stats['total_size']) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <link rel="apple-touch-icon" sizes="76x76" href="<?=$_ENV['PAGE_ICON']?>">
-        <link rel="icon" type="image/png" href="<?=$_ENV['PAGE_ICON']?>">
-        <title><?=$_ENV['PAGE_HEADER']?></title>
+    <link rel="icon" type="image/png" href="<?=$_ENV['PAGE_ICON']?>">
+    <title><?=$_ENV['PAGE_HEADER']?> - My Learning Materials</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -435,6 +443,19 @@ if ($stats['total_size']) {
             transform: translateY(-2px);
         }
         
+        .my-material-badge {
+            background: #e8f0fe;
+            color: #2563eb;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        
         .pdf-icon {
             width: 48px;
             height: 48px;
@@ -458,7 +479,7 @@ if ($stats['total_size']) {
         
         .material-info {
             flex: 1;
-            min-width: 0; /* Enable text truncation */
+            min-width: 0;
         }
         
         .material-title {
@@ -540,7 +561,6 @@ if ($stats['total_size']) {
             }
         }
         
-        /* PDF Modal */
         .pdf-modal {
             display: none;
             position: fixed;
@@ -691,6 +711,16 @@ if ($stats['total_size']) {
             word-break: break-word;
         }
         
+        .privacy-note {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #0369a1;
+            margin-top: 16px;
+        }
+        
         @media (max-width: 575.98px) {
             .material-card .row {
                 flex-direction: column;
@@ -739,7 +769,7 @@ if ($stats['total_size']) {
                 <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                     <h2>
                         <i class="bi bi-journal-bookmark-fill"></i>
-                        Learning Materials
+                        My Learning Materials
                     </h2>
                     <div class="d-flex flex-wrap align-items-center gap-3 w-100 w-md-auto">
                         <span class="section-badge w-100 w-md-auto justify-content-center justify-content-md-start">
@@ -754,6 +784,12 @@ if ($stats['total_size']) {
                 </div>
                 
                 <div class="card-body p-3 p-md-4">
+                    <!-- Privacy Note -->
+                    <div class="privacy-note mb-4">
+                        <i class="bi bi-shield-lock-fill me-2"></i>
+                        You are viewing only the learning materials you have uploaded. Other teachers' materials are not visible to maintain privacy.
+                    </div>
+                    
                     <!-- Statistics Cards -->
                     <div class="row g-3 g-md-4 mb-4 mb-md-5">
                         <div class="col-6 col-md-3">
@@ -762,7 +798,7 @@ if ($stats['total_size']) {
                                     <i class="bi bi-files"></i>
                                 </div>
                                 <div class="stats-number"><?= $stats['total_materials'] ?? 0 ?></div>
-                                <div class="stats-label">Total Materials</div>
+                                <div class="stats-label">My Materials</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
@@ -853,12 +889,12 @@ if ($stats['total_size']) {
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                             <h5 class="mb-0 d-flex align-items-center">
                                 <i class="bi bi-files fs-4 me-2" style="color: #667eea;"></i>
-                                Materials Library
+                                My Materials Library
                                 <span class="badge bg-secondary ms-3 rounded-pill"><?= count($learning_materials) ?></span>
                             </h5>
                             
                             <div class="d-flex gap-2 w-100 w-md-auto">
-                                <input type="text" class="form-control" id="searchMaterials" placeholder="Search materials..." style="max-width: 300px;">
+                                <input type="text" class="form-control" id="searchMaterials" placeholder="Search my materials..." style="max-width: 300px;">
                                 <select class="form-select" id="sortMaterials" style="width: auto;">
                                     <option value="newest">Newest First</option>
                                     <option value="oldest">Oldest First</option>
@@ -871,7 +907,7 @@ if ($stats['total_size']) {
                         <?php if (empty($learning_materials)): ?>
                             <div class="empty-state">
                                 <i class="bi bi-files"></i>
-                                <h6 class="mt-3">No learning materials yet</h6>
+                                <h6 class="mt-3">You haven't uploaded any learning materials yet</h6>
                                 <p class="text-muted">Upload your first PDF learning material to get started.</p>
                             </div>
                         <?php else: ?>
@@ -913,6 +949,10 @@ if ($stats['total_size']) {
                                                         <span class="badge-pdf">
                                                             <i class="bi bi-file-pdf me-1"></i>
                                                             PDF
+                                                        </span>
+                                                        <span class="my-material-badge">
+                                                            <i class="bi bi-person-check"></i>
+                                                            My Upload
                                                         </span>
                                                         <span class="text-muted small">
                                                             <i class="bi bi-person"></i>
